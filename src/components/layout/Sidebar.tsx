@@ -69,14 +69,14 @@ export function Sidebar() {
       <div className="px-4 py-4 border-t border-gray-50">
         <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: '#F0EFFE' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] font-semibold"
+            style={{ background: 'linear-gradient(135deg, #8B84CC 0%, #6C63B6 100%)', color: '#FFFFFF' }}
           >
-            <span className="text-[#6C63B6] text-xs font-semibold">M</span>
+            M
           </div>
           <div>
-            <p className="text-[12px] font-medium text-gray-700 leading-tight">Monica</p>
-            <p className="text-[10px] text-gray-400">Personal Assistant</p>
+            <p className="text-[12px] font-medium leading-tight" style={{ color: '#1C1B1A' }}>Monica</p>
+            <p className="text-[10px]" style={{ color: '#A8A6A0' }}>Personal Assistant</p>
           </div>
         </div>
       </div>

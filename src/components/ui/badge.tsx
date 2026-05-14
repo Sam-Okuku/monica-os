@@ -1,35 +1,28 @@
-import { cn } from '@/lib/utils'
-import { PRIORITY_COLORS, CATEGORY_COLORS } from '@/lib/constants'
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-interface BadgeProps {
-  variant?: 'priority' | 'category' | 'status' | 'custom'
-  value?: string
-  children?: React.ReactNode
-  className?: string
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "secondary" | "destructive" | "outline"
 }
 
-export function Badge({ variant, value, children, className }: BadgeProps) {
-  let colorClass = 'bg-gray-50 text-gray-500 border-gray-200'
-
-  if (variant === 'priority' && value) {
-    colorClass = PRIORITY_COLORS[value] ?? colorClass
-  } else if (variant === 'category' && value) {
-    colorClass = CATEGORY_COLORS[value] ?? colorClass
-  } else if (variant === 'status') {
-    if (value === 'done') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    if (value === 'pending') colorClass = 'bg-blue-50 text-blue-600 border-blue-200'
-    if (value === 'deferred') colorClass = 'bg-gray-50 text-gray-400 border-gray-200'
-    if (value === 'waiting') colorClass = 'bg-amber-50 text-amber-700 border-amber-200'
-    if (value === 'resolved') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200'
+function Badge({ className, variant = "default", ...props }: BadgeProps) {
+  const variants = {
+    default: "bg-purple-50 text-purple-700 border-transparent",
+    secondary: "bg-gray-50 text-gray-600 border-transparent",
+    destructive: "bg-red-50 text-red-600 border-transparent",
+    outline: "text-gray-600 border-gray-200",
   }
 
   return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border',
-      colorClass,
-      className
-    )}>
-      {children ?? value}
-    </span>
+    <div
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+        variants[variant],
+        className
+      )}
+      {...props}
+    />
   )
 }
+
+export { Badge }
