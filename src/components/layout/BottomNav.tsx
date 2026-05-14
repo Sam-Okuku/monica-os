@@ -8,8 +8,8 @@ const navItems = [
   { href: '/', label: 'Home', icon: '⬡' },
   { href: '/tasks', label: 'Tasks', icon: '✓' },
   { href: '/follow-ups', label: 'Radar', icon: '◎' },
+  { href: '/tracker', label: 'Tracker', icon: '▦' },
   { href: '/notes', label: 'Notes', icon: '≡' },
-  { href: '/calendar', label: 'Calendar', icon: '◻' },
 ]
 
 export function BottomNav() {

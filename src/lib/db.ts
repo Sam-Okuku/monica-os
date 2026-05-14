@@ -95,6 +95,24 @@ export interface AppSettings {
   key: string
   value: string
 }
+export interface Department {
+  id?: number
+  name: string
+  color: string
+  order_index: number
+}
+
+export interface Action {
+  id?: number
+  department_id: number
+  action_id: string
+  description: string
+  contact_name?: string
+  status: 'completed' | 'in-progress' | 'tbc' | 'not-started'
+  notes?: string
+  created_at: string
+  updated_at: string
+}
 
 class MonicaOSDatabase extends Dexie {
   tasks!: Table<Task>
@@ -106,11 +124,13 @@ class MonicaOSDatabase extends Dexie {
   executives!: Table<Executive>
   streak_log!: Table<StreakLog>
   settings!: Table<AppSettings>
+  departments!: Table<Department>
+  actions!: Table<Action>
 
   constructor() {
     super('MonicaOS')
 
-    this.version(1).stores({
+    this.version(2).stores({
       tasks: '++id, status, priority, is_boss_priority, due_at, executive_id, created_at',
       follow_ups: '++id, status, task_id, expected_by, contact_name, sent_at',
       events: '++id, starts_at, ends_at, executive_id, event_type',
@@ -120,6 +140,8 @@ class MonicaOSDatabase extends Dexie {
       executives: '++id, name',
       streak_log: '++id, log_date',
       settings: 'key',
+      departments: '++id, name, order_index',
+      actions: '++id, department_id, action_id, status, contact_name',
     })
   }
 }
@@ -182,4 +204,60 @@ export async function seedInitialData() {
     { key: 'streak_count', value: '14' },
     { key: 'shields_remaining', value: '2' },
   ])
+  const deptCount = await db.departments.count()
+  if (deptCount === 0) {
+    const depts = await db.departments.bulkAdd([
+      { name: 'DIV 1 & 2', color: '#6C63B6', order_index: 1 },
+      { name: 'Emerging Market', color: '#1D9E75', order_index: 2 },
+      { name: 'Marketing', color: '#D4860A', order_index: 3 },
+      { name: 'Data & Strategy', color: '#378ADD', order_index: 4 },
+      { name: 'Credit Control', color: '#C94F2C', order_index: 5 },
+      { name: 'HORECA – Noreen', color: '#8B5CF6', order_index: 6 },
+      { name: 'Mainland EPZ', color: '#059669', order_index: 7 },
+    ], { allKeys: true })
+
+    const now = new Date().toISOString()
+    const ids = depts as number[]
+
+    await db.actions.bulkAdd([
+      { department_id: ids[0], action_id: 'ACT-001', description: 'Separate White Wash and 1KG', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[0], action_id: 'ACT-002', description: 'DMS status update', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[0], action_id: 'ACT-003', description: 'Sojpar onboarding', contact_name: 'Amina', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[0], action_id: 'ACT-004', description: 'Align with Zen', contact_name: 'Charles', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[0], action_id: 'ACT-005', description: 'Obtain regional data', contact_name: 'Amina', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-006', description: 'Complete MO costing', contact_name: 'Mukami', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-007', description: 'Align with Bosaso client', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-008', description: 'Send samples to Sudan and Somalia', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-009', description: 'Wrappers and artwork coordination – Mainland', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-010', description: 'Follow up on Dubai deal', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-011', description: 'Progress Zimgold deal', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-012', description: 'Confirm containers & shipping date – Somalia', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-013', description: 'Execute bond & confirm volume capacity', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[1], action_id: 'ACT-014', description: 'Magic White production', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-015', description: 'Clarify Afrisense strategy', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-016', description: 'Curl & Gel formulation', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-017', description: 'Close deal with Chebet & sign contract', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-018', description: 'Tiara proposal', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-019', description: 'Agree July launch date', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-020', description: 'Brand head ground activation', status: 'not-started', created_at: now, updated_at: now },
+      { department_id: ids[2], action_id: 'ACT-021', description: 'NPD cost closure', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[3], action_id: 'ACT-022', description: 'Universe coverage & GEO analysis', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[3], action_id: 'ACT-023', description: 'Distributor review summary', status: 'not-started', created_at: now, updated_at: now },
+      { department_id: ids[3], action_id: 'ACT-024', description: 'B2B data visibility – export vs domestic', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[3], action_id: 'ACT-025', description: 'Add all SKUs and share data', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[3], action_id: 'ACT-026', description: 'Correct & update DVIO system', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[4], action_id: 'ACT-027', description: 'Increase transporter insurance cover', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[4], action_id: 'ACT-028', description: 'Obtain Oracle system – Mainland', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[4], action_id: 'ACT-029', description: 'Prepare bonds', contact_name: 'Fred', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[4], action_id: 'ACT-030', description: 'Develop SOP for credit risk prediction', status: 'not-started', created_at: now, updated_at: now },
+      { department_id: ids[4], action_id: 'ACT-031', description: 'Credit check for Vegol', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[5], action_id: 'ACT-032', description: 'Set up Solutech App – fill customer details', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[5], action_id: 'ACT-033', description: 'Clarify Uganda bypass route (Lato)', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[5], action_id: 'ACT-034', description: 'Close deal with Dr Jael', status: 'completed', created_at: now, updated_at: now },
+      { department_id: ids[5], action_id: 'ACT-035', description: 'Provide data conversion for all HORECA products', status: 'in-progress', created_at: now, updated_at: now },
+      { department_id: ids[6], action_id: 'ACT-036', description: 'Ethiopia orders – closing status', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[6], action_id: 'ACT-037', description: 'Request with Ketepa and obtain quote', status: 'tbc', created_at: now, updated_at: now },
+      { department_id: ids[6], action_id: 'ACT-038', description: 'Deliver 1 trial truck for Omar Hamisi', status: 'completed', created_at: now, updated_at: now },
+    ])
+  }
 }
