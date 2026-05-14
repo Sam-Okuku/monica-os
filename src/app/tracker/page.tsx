@@ -260,26 +260,20 @@ export default function TrackerPage() {
         <main className="flex-1 p-4 lg:p-6 max-w-4xl mx-auto w-full space-y-3">
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            {([
-              { count: stats.completed, ...STATUS_CONFIG.completed },
-              { count: stats.inProgress, ...STATUS_CONFIG['in-progress'] },
-              { count: stats.tbc, ...STATUS_CONFIG.tbc },
-              { count: stats.notStarted, ...STATUS_CONFIG['not-started'] },
-              ])}
-            ]).map(s => (
-              <div
-                key={s.label}
-                className="rounded-xl px-4 py-3"
-                style={{ background: s.bg, border: `0.5px solid ${s.dot}30` }}
-              >
-                <p className="text-[10px] font-medium tracking-wide mb-1" style={{ color: s.text, opacity: 0.7 }}>
-                  {s.label}
-                </p>
-                <p className="text-[22px] font-semibold" style={{ color: s.text, letterSpacing: '-0.02em' }}>
-                  {s.count}
-                </p>
-              </div>
-            ))}
+            {[
+  { count: stats.completed, ...STATUS_CONFIG.completed },
+  { count: stats.inProgress, ...STATUS_CONFIG['in-progress'] },
+  { count: stats.tbc, ...STATUS_CONFIG.tbc },
+  { count: stats.notStarted, ...STATUS_CONFIG['not-started'] },
+].map((s) => (
+  <div
+    key={s.label}
+    className="rounded-xl px-4 py-3 border bg-white/70 backdrop-blur-sm"
+  >
+    <div className="text-2xl font-semibold">{s.count}</div>
+    <div className="text-sm text-muted-foreground">{s.label}</div>
+  </div>
+))}
           </div>
 
           {visibleDepts.map(dept => {
