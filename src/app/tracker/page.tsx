@@ -402,10 +402,10 @@ export default function TrackerPage() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {([
-              { label: 'Completed', count: stats.completed, ...STATUS_CONFIG.completed },
-              { label: 'In progress', count: stats.inProgress, ...STATUS_CONFIG['in-progress'] },
-              { label: 'TBC', count: stats.tbc, ...STATUS_CONFIG.tbc },
-              { label: 'Not started', count: stats.notStarted, ...STATUS_CONFIG['not-started'] },
+              { count: stats.completed, ...STATUS_CONFIG.completed },
+              { count: stats.inProgress, ...STATUS_CONFIG['in-progress'] },
+              { count: stats.tbc, ...STATUS_CONFIG.tbc },
+              { count: stats.notStarted, ...STATUS_CONFIG['not-started'] },
             ]).map(s => (
               <div
                 key={s.label}
