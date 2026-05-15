@@ -7,18 +7,24 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon = '○', title, description, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-14 text-center px-6">
-      <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center text-xl mb-4 text-gray-200">
+    <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center text-xl mb-3"
+        style={{ background: '#F0EFFF', color: '#C4B5FD' }}
+      >
         {icon}
       </div>
-      <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+      <p className="text-[13px] font-semibold mb-1" style={{ color: '#374151' }}>{title}</p>
       {description && (
-        <p className="text-xs text-gray-400 leading-relaxed max-w-[200px]">{description}</p>
+        <p className="text-[11px] leading-relaxed max-w-[180px]" style={{ color: '#6B7280' }}>
+          {description}
+        </p>
       )}
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 text-xs text-[#6C63B6] hover:text-[#4A4390] font-medium transition-colors"
+          className="mt-4 text-[11px] font-semibold transition-colors"
+          style={{ color: '#7C3AED' }}
         >
           {action.label} →
         </button>

@@ -59,7 +59,7 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#F7F6F3' }}>
+    <div className="flex min-h-screen" style={{ background: '#F0EFFF' }}>
       <Sidebar />
       <div className="flex-1 flex flex-col pb-20 lg:pb-0">
         <div className="bg-white border-b border-gray-100 px-6 py-5">

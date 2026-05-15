@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, seedInitialData } from '@/lib/db'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
 import { ReadinessScore } from '@/components/dashboard/ReadinessScore'
-import { StreakRow } from '@/components/dashboard/StreakRow'
+import { TrackerPulse } from '@/components/dashboard/TrackerPulse'
 import { DayClose } from '@/components/dashboard/DayClose'
 import { TaskItem } from '@/components/tasks/TaskItem'
 import { FollowUpItem } from '@/components/followups/FollowUpItem'
@@ -18,12 +18,26 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { InstallPrompt } from '@/components/shared/InstallPrompt'
 import { getDayForecast, todayDate } from '@/lib/utils'
 
+function getDayMode(): 'opening' | 'active' | 'closing' {
+  const h = new Date().getHours()
+  if (h >= 6 && h < 10) return 'opening'
+  if (h >= 16) return 'closing'
+  return 'active'
+}
+
+function getDayModeLabel(mode: 'opening' | 'active' | 'closing'): string {
+  if (mode === 'opening') return 'Morning briefing'
+  if (mode === 'closing') return 'Day closing summary'
+  return 'Active operations'
+}
+
 export default function Dashboard() {
   const [captureOpen, setCaptureOpen] = useState(false)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
   const [dayCloseOpen, setDayCloseOpen] = useState(false)
   const [calmMode, setCalmMode] = useState(false)
   const [refresh, setRefresh] = useState(0)
+  const dayMode = getDayMode()
   const forceRefresh = useCallback(() => setRefresh(r => r + 1), [])
 
   useEffect(() => { seedInitialData() }, [])
@@ -65,30 +79,49 @@ export default function Dashboard() {
     () => db.captures.where('status').equals('raw').toArray(), [refresh]
   ) ?? []
 
-  const bossTasks = pendingTasks.filter(t => t.is_boss_priority)
+  const now = Date.now()
+  const activeEvents = useMemo(() =>
+    todaysEvents.filter(e => new Date(e.ends_at).getTime() >= now || e.ends_at === e.starts_at),
+    [todaysEvents, now]
+  )
+  const pastEvents = useMemo(() =>
+    todaysEvents.filter(e => new Date(e.ends_at).getTime() < now && e.ends_at !== e.starts_at),
+    [todaysEvents, now]
+  )
 
-  const sortedTasks = [...pendingTasks].sort((a, b) => {
+  const sortedTasks = useMemo(() => [...pendingTasks].sort((a, b) => {
     const p: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
     if (a.is_boss_priority !== b.is_boss_priority) return a.is_boss_priority ? -1 : 1
     return (p[a.priority] ?? 2) - (p[b.priority] ?? 2)
-  })
+  }), [pendingTasks])
 
-  const sortedFollowUps = [...followUps].sort(
-    (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+  const sortedFollowUps = useMemo(() =>
+    [...followUps].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()),
+    [followUps]
   )
 
+  const dangerFollowUps = followUps.filter(f => {
+    const h = Math.abs((Date.now() - new Date(f.sent_at).getTime()) / 3600000)
+    return h >= 36
+  }).length
+
+  const unbriefedMeetings = activeEvents.filter(e => e.prep_needed && !e.brief_sent).length
   const forecast = getDayForecast(pendingTasks.length, followUps.length)
 
   const invisibleWin = doneTasks.length > 0
-    ? `You completed ${doneTasks.length} task${doneTasks.length > 1 ? 's' : ''} today.`
-    : todaysEvents.filter(e => e.prep_needed && e.brief_sent).length > 0
+    ? `${doneTasks.length} task${doneTasks.length > 1 ? 's' : ''} completed today.`
+    : activeEvents.filter(e => e.prep_needed && e.brief_sent).length > 0
     ? 'All prepped meetings are briefed.'
     : null
 
+  const modeColor = dayMode === 'opening' ? '#FDD835' : dayMode === 'closing' ? '#7C3AED' : '#4CAF50'
+  const modeBg = dayMode === 'opening' ? '#FFF9C4' : dayMode === 'closing' ? '#EDE9FE' : '#D4EDDA'
+  const modeText = dayMode === 'opening' ? '#7A6500' : dayMode === 'closing' ? '#4C1D95' : '#1A7A3A'
+
   return (
     <div
-      className={`flex min-h-screen transition-all duration-700 ${calmMode ? 'saturate-[0.4] brightness-[1.03]' : ''}`}
-      style={{ background: '#F7F6F3' }}
+      className={`flex min-h-screen transition-all duration-700 ${calmMode ? 'saturate-[0.3]' : ''}`}
+      style={{ background: '#F0EFFF' }}
     >
       <Sidebar />
 
@@ -99,15 +132,39 @@ export default function Dashboard() {
           calmMode={calmMode}
         />
 
-        <main className="flex-1 p-4 lg:p-6 max-w-5xl mx-auto w-full">
+        <main className="flex-1 p-4 lg:p-5 max-w-5xl mx-auto w-full">
+
+          <div
+            className="mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl"
+            style={{ background: modeBg, border: `0.5px solid ${modeColor}30` }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ background: modeColor }} />
+              <span className="text-[11px] font-bold tracking-wide" style={{ color: modeText }}>
+                {getDayModeLabel(dayMode)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {dangerFollowUps > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FCE4EC', color: '#9C1B3E' }}>
+                  {dangerFollowUps} overdue follow-up{dangerFollowUps > 1 ? 's' : ''}
+                </span>
+              )}
+              {unbriefedMeetings > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E' }}>
+                  {unbriefedMeetings} brief needed
+                </span>
+              )}
+            </div>
+          </div>
 
           {invisibleWin && !calmMode && (
             <div
               className="mb-4 px-4 py-3 rounded-xl flex items-center gap-3 fade-in"
-              style={{ background: '#E4F5EE', border: '0.5px solid #9FE1CB' }}
+              style={{ background: '#D4EDDA', border: '0.5px solid #4CAF5040' }}
             >
-              <span style={{ color: '#1D9E75', fontSize: '14px' }}>★</span>
-              <p className="text-[12px] leading-relaxed" style={{ color: '#085041' }}>
+              <span style={{ color: '#4CAF50', fontSize: '14px' }}>★</span>
+              <p className="text-[12px] font-semibold" style={{ color: '#1A7A3A' }}>
                 {invisibleWin}
               </p>
             </div>
@@ -119,24 +176,31 @@ export default function Dashboard() {
             </div>
             <div
               className="flex items-center px-4 py-3 rounded-xl"
-              style={{ background: '#FFFFFF', border: '0.5px solid #ECEAE5' }}
+              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
             >
               <div className="w-full">
                 <p className="monica-label">Day forecast</p>
-                <p className="text-[14px] font-medium mb-2" style={{ color: '#1C1B1A', letterSpacing: '-0.01em' }}>
+                <p
+                  className="text-[14px] font-bold mb-2"
+                  style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}
+                >
                   {forecast.label}
                 </p>
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: '#F2F0EB' }}>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
                   <div
                     className="h-full rounded-full transition-all duration-1000"
                     style={{
                       width: `${forecast.load}%`,
-                      background: forecast.load < 50 ? '#1D9E75' : forecast.load < 75 ? '#D4860A' : '#C94F2C'
+                      background: forecast.load < 50 ? '#4CAF50' : forecast.load < 75 ? '#D97706' : '#EF4444'
                     }}
                   />
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mb-4">
+            <TrackerPulse />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -146,9 +210,11 @@ export default function Dashboard() {
                 <div>
                   <p className="monica-label">Today's priorities</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-gray-500">{pendingTasks.length} pending</span>
+                    <span className="text-[12px] font-semibold" style={{ color: '#374151' }}>
+                      {pendingTasks.length} pending
+                    </span>
                     {doneTasks.length > 0 && (
-                      <span className="text-[12px]" style={{ color: '#1D9E75' }}>
+                      <span className="text-[12px] font-semibold" style={{ color: '#4CAF50' }}>
                         · {doneTasks.length} done
                       </span>
                     )}
@@ -156,13 +222,13 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => setAddTaskOpen(true)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-light transition-all hover:scale-110 active:scale-95"
-                  style={{ background: '#F0EFFE', color: '#6C63B6' }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-all hover:scale-110 active:scale-95"
+                  style={{ background: '#EDE9FE', color: '#7C3AED' }}
                 >
                   +
                 </button>
               </div>
-              <div className="px-3 py-1 max-h-80 overflow-y-auto">
+              <div className="px-3 py-1 max-h-72 overflow-y-auto">
                 {sortedTasks.length === 0 && doneTasks.length === 0 ? (
                   <EmptyState icon="✓" title="All clear" description="No pending tasks today" />
                 ) : (
@@ -181,11 +247,11 @@ export default function Dashboard() {
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Follow-up radar</p>
-                <p className="text-[12px] text-gray-500">
+                <p className="text-[12px] font-semibold" style={{ color: '#374151' }}>
                   {sortedFollowUps.length} awaiting response
                 </p>
               </div>
-              <div className="px-4 py-1 max-h-80 overflow-y-auto">
+              <div className="px-4 py-1 max-h-72 overflow-y-auto">
                 {sortedFollowUps.length === 0 ? (
                   <EmptyState icon="◎" title="Radar clear" description="No pending follow-ups" />
                 ) : (
@@ -199,44 +265,61 @@ export default function Dashboard() {
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Today's agenda</p>
-                <p className="text-[12px] text-gray-500">
-                  {todaysEvents.filter(e => !e.is_shadow).length} meetings
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[12px] font-semibold" style={{ color: '#374151' }}>
+                    {activeEvents.filter(e => !e.is_shadow).length} upcoming
+                  </p>
+                  {pastEvents.length > 0 && (
+                    <span className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>
+                      {pastEvents.length} done
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="px-4 py-3 max-h-80 overflow-y-auto">
-                {todaysEvents.length === 0 ? (
+              <div className="px-4 py-3 max-h-72 overflow-y-auto">
+                {activeEvents.length === 0 && pastEvents.length === 0 ? (
                   <EmptyState icon="◻" title="No events today" />
                 ) : (
-                  todaysEvents.map(event => (
-                    <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
-                  ))
+                  <>
+                    {activeEvents.map(event => (
+                      <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                    ))}
+                    {pastEvents.length > 0 && (
+                      <div className="mt-1">
+                        {pastEvents.map(event => (
+                          <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              <StreakRow />
             </div>
 
             {rawCaptures.length > 0 && (
               <div className="monica-card overflow-hidden">
                 <div className="monica-section-head">
                   <p className="monica-label">Inbox</p>
-                  <p className="text-[12px] text-gray-500">{rawCaptures.length} unprocessed</p>
+                  <p className="text-[12px] font-semibold" style={{ color: '#374151' }}>
+                    {rawCaptures.length} unprocessed
+                  </p>
                 </div>
                 <div className="px-4 py-2 max-h-44 overflow-y-auto">
                   {rawCaptures.slice(0, 5).map(c => (
                     <div
                       key={c.id}
-                      className="flex items-start gap-2 py-2.5 border-b border-gray-50 last:border-0"
+                      className="flex items-start gap-2 py-2.5 border-b last:border-0"
+                      style={{ borderColor: '#F3F4F6' }}
                     >
                       <span
-                        className="text-[9px] px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0 font-medium"
-                        style={{ background: '#F0EFFE', color: '#6C63B6' }}
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0"
+                        style={{ background: '#EDE9FE', color: '#7C3AED' }}
                       >
                         {c.auto_tag}
                       </span>
-                      <p className="text-[12px] text-gray-600 leading-relaxed">{c.content}</p>
+                      <p className="text-[12px] font-medium leading-relaxed" style={{ color: '#374151' }}>
+                        {c.content}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -247,17 +330,17 @@ export default function Dashboard() {
 
           <div
             className="mt-4 flex items-center justify-between px-5 py-3.5 rounded-xl"
-            style={{ background: '#FFFFFF', border: '0.5px solid #ECEAE5' }}
+            style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
           >
-            <p className="text-[12px] italic" style={{ color: '#A8A6A0' }}>
+            <p className="text-[12px] font-medium italic" style={{ color: '#6B7280' }}>
               {doneTasks.length === 0
-                ? 'Your day is set. Start with the starred priorities.'
-                : `Today ran well. ${doneTasks.length} thing${doneTasks.length > 1 ? 's' : ''} handled.`}
+                ? 'Start with the starred priorities.'
+                : `${doneTasks.length} thing${doneTasks.length > 1 ? 's' : ''} handled today.`}
             </p>
             <button
               onClick={() => setDayCloseOpen(true)}
-              className="text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
-              style={{ background: '#F0EFFE', color: '#6C63B6' }}
+              className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
+              style={{ background: '#EDE9FE', color: '#7C3AED' }}
             >
               Close day →
             </button>

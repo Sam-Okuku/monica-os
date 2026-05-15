@@ -2,13 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/', label: 'Home', icon: '⬡' },
   { href: '/tasks', label: 'Tasks', icon: '✓' },
-  { href: '/follow-ups', label: 'Radar', icon: '◎' },
   { href: '/tracker', label: 'Tracker', icon: '▦' },
+  { href: '/follow-ups', label: 'Radar', icon: '◎' },
   { href: '/notes', label: 'Notes', icon: '≡' },
 ]
 
@@ -16,26 +15,22 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 z-40">
-      <div className="flex items-center justify-around px-1 py-1.5">
+    <nav
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+      style={{ background: '#1E1B4B', borderTop: '0.5px solid rgba(255,255,255,0.08)' }}
+    >
+      <div className="flex items-center justify-around px-1 py-2">
         {navItems.map(item => {
           const active = pathname === item.href
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={cn(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[52px]',
-                active ? 'text-[#6C63B6]' : 'text-gray-300'
-              )}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-all"
+              style={{ color: active ? '#FFFFFF' : 'rgba(255,255,255,0.35)' }}
             >
-              <span className={cn('text-base leading-none', active && 'scale-110')}>{item.icon}</span>
-              <span className={cn(
-                'text-[9px] font-medium tracking-wide',
-                active ? 'text-[#6C63B6]' : 'text-gray-300'
-              )}>
-                {item.label}
-              </span>
+              <span className="text-base leading-none">{item.icon}</span>
+              <span className="text-[9px] font-medium">{item.label}</span>
             </Link>
           )
         })}

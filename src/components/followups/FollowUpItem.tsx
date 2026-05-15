@@ -10,11 +10,7 @@ interface FollowUpItemProps {
 }
 
 const CHANNEL_ICONS: Record<string, string> = {
-  email: '✉',
-  whatsapp: '◎',
-  call: '◷',
-  verbal: '◈',
-  other: '○',
+  email: '✉', whatsapp: '◎', call: '◷', verbal: '◈', other: '○',
 }
 
 export function FollowUpItem({ followUp, onUpdate }: FollowUpItemProps) {
@@ -27,52 +23,63 @@ export function FollowUpItem({ followUp, onUpdate }: FollowUpItemProps) {
   const handleDefer = async () => { await deferFollowUp(followUp.id!); onUpdate() }
 
   return (
-    <div className={`py-3.5 border-b border-gray-50 last:border-0 transition-all ${isResolved ? 'opacity-40' : ''}`}>
-      <div className="flex items-start justify-between gap-3 mb-1.5">
+    <div
+      className="py-3 border-b last:border-0 transition-all"
+      style={{ borderColor: '#F3F4F6', opacity: isResolved ? 0.4 : 1 }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-gray-200 text-xs flex-shrink-0">
+          <span className="text-[11px] flex-shrink-0" style={{ color: '#9CA3AF' }}>
             {CHANNEL_ICONS[followUp.channel] ?? '○'}
           </span>
-          <p className="text-[13px] font-medium text-gray-700 truncate" style={{ letterSpacing: '-0.005em' }}>
+          <p className="text-[13px] font-semibold truncate" style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}>
             {followUp.contact_name}
           </p>
           {followUp.status === 'nudged' && (
-            <span className="text-[9px] bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded-full flex-shrink-0">
+            <span
+              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style={{ background: '#EDE9FE', color: '#4C1D95' }}
+            >
               nudged
             </span>
           )}
         </div>
-        <span className={`text-[11px] font-semibold tabular-nums flex-shrink-0 ${ageColor}`}>
+        <span className={`text-[12px] font-bold tabular-nums flex-shrink-0 ${ageColor}`}>
           {Math.round(hours)}h
         </span>
       </div>
 
-      <p className="text-[11px] text-gray-400 mb-2.5 ml-4 leading-relaxed">{followUp.context}</p>
+      <p className="text-[12px] mb-2.5 ml-5 leading-relaxed" style={{ color: '#4B5563' }}>
+        {followUp.context}
+      </p>
 
       {!isResolved && (
-        <div className="flex gap-1.5 ml-4">
+        <div className="flex gap-1.5 ml-5">
           <button
             onClick={handleNudge}
-            className="px-2.5 py-1 text-[10px] font-medium text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-2.5 py-1 text-[10px] font-semibold rounded-lg transition-colors"
+            style={{ background: '#F3F4F6', color: '#374151' }}
           >
             Nudge
           </button>
           <button
             onClick={handleDefer}
-            className="px-2.5 py-1 text-[10px] font-medium text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-2.5 py-1 text-[10px] font-semibold rounded-lg transition-colors"
+            style={{ background: '#F3F4F6', color: '#374151' }}
           >
             Defer
           </button>
           <button
             onClick={handleResolve}
-            className="px-2.5 py-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+            className="px-2.5 py-1 text-[10px] font-semibold rounded-lg transition-colors"
+            style={{ background: '#D4EDDA', color: '#1A7A3A' }}
           >
             Resolved ✓
           </button>
         </div>
       )}
       {isResolved && (
-        <p className="text-[10px] text-emerald-500 ml-4">✓ Resolved</p>
+        <p className="text-[10px] font-semibold ml-5" style={{ color: '#4CAF50' }}>✓ Resolved</p>
       )}
     </div>
   )

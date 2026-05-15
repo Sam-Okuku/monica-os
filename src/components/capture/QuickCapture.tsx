@@ -10,11 +10,11 @@ interface QuickCaptureProps {
 }
 
 const TAG_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  task: { label: 'Task', bg: '#F0EFFE', text: '#6C63B6' },
-  'follow-up': { label: 'Follow-up', bg: '#FEF3E2', text: '#D4860A' },
-  verbal: { label: 'Verbal commit', bg: '#EEF2FF', text: '#4F46E5' },
-  note: { label: 'Note', bg: '#F5F4F2', text: '#7A7874' },
-  idea: { label: 'Idea', bg: '#E4F5EE', text: '#1D9E75' },
+  task: { label: 'Task', bg: '#EDE9FE', text: '#4C1D95' },
+  'follow-up': { label: 'Follow-up', bg: '#FFF9C4', text: '#7A6500' },
+  verbal: { label: 'Verbal commit', bg: '#DBEAFE', text: '#1E40AF' },
+  note: { label: 'Note', bg: '#F3F4F6', text: '#374151' },
+  idea: { label: 'Idea', bg: '#D4EDDA', text: '#1A7A3A' },
 }
 
 export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
@@ -64,20 +64,21 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
+      <div className="absolute inset-0" style={{ background: 'rgba(30,27,75,0.3)' }} />
       <div
-        className="relative w-full max-w-md mx-4 mb-6 sm:mb-0 bg-white rounded-2xl border border-gray-100 shadow-sm slide-up overflow-hidden"
+        className="relative w-full max-w-md mx-4 mb-6 sm:mb-0 rounded-2xl overflow-hidden slide-up"
+        style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 pt-5 pb-4 border-b border-gray-50">
+        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '0.5px solid #F3F4F6' }}>
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-medium text-gray-400 tracking-wider uppercase">
+            <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#6B7280' }}>
               Quick capture
             </p>
             <div className="flex items-center gap-2">
               {content && (
                 <span
-                  className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                   style={{ background: tagConfig.bg, color: tagConfig.text }}
                 >
                   {tagConfig.label}
@@ -85,7 +86,8 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
               )}
               <button
                 onClick={onClose}
-                className="text-gray-200 hover:text-gray-400 text-xl leading-none transition-colors"
+                className="text-xl leading-none transition-colors"
+                style={{ color: '#D1D5DB' }}
               >
                 ×
               </button>
@@ -100,21 +102,28 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
             onChange={e => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Task, verbal commit, follow-up, idea…"
-            className="w-full text-[14px] text-gray-700 placeholder-gray-300 resize-none min-h-[90px] leading-relaxed"
-            style={{ letterSpacing: '-0.005em' }}
+            className="w-full resize-none min-h-[90px] leading-relaxed"
+            style={{
+              fontSize: '14px',
+              color: '#1E1B4B',
+              fontWeight: 500,
+              letterSpacing: '-0.005em',
+            }}
             rows={3}
           />
         </div>
 
         <div className="px-5 pb-5 flex items-center justify-between">
-          <p className="text-[10px] text-gray-300">Ctrl+Enter to save · Esc to close</p>
+          <p className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>
+            Ctrl+Enter to save · Esc to close
+          </p>
           <button
             onClick={handleSave}
             disabled={!content.trim()}
-            className="px-5 py-2 rounded-xl text-[12px] font-medium transition-all active:scale-95"
+            className="px-5 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 disabled:opacity-30"
             style={{
-              background: saved ? '#E4F5EE' : content.trim() ? '#6C63B6' : '#F5F4F2',
-              color: saved ? '#1D9E75' : content.trim() ? '#FFFFFF' : '#A8A6A0',
+              background: saved ? '#D4EDDA' : content.trim() ? '#7C3AED' : '#F3F4F6',
+              color: saved ? '#1A7A3A' : content.trim() ? '#FFFFFF' : '#9CA3AF',
             }}
           >
             {saved ? '✓ Saved' : 'Save'}

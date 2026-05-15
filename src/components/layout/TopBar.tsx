@@ -21,52 +21,60 @@ export function TopBar({ onCaptureOpen, onCalmMode, calmMode }: TopBarProps) {
     return () => clearInterval(interval)
   }, [])
 
-  const readinessColor = readiness >= 80 ? '#1D9E75' : readiness >= 60 ? '#D4860A' : '#C94F2C'
-  const readinessLabel = readiness >= 90 ? 'In control' : readiness >= 75 ? 'On track' : readiness >= 60 ? 'Watch' : 'Focus needed'
+  const readinessColor = readiness >= 80 ? '#4CAF50' : readiness >= 60 ? '#D97706' : '#EF4444'
+  const readinessLabel = readiness >= 90 ? 'In control' : readiness >= 75 ? 'On track' : 'Needs focus'
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
+    <div
+      className="flex items-center justify-between px-6 py-4"
+      style={{ background: '#FFFFFF', borderBottom: '0.5px solid #E5E7EB' }}
+    >
       <div className="fade-in">
-        <p className="text-[10px] font-medium text-gray-300 tracking-[0.1em] uppercase mb-0.5">
+        <p
+          className="text-[10px] font-semibold tracking-[0.1em] uppercase mb-0.5"
+          style={{ color: '#6B7280' }}
+        >
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-[16px] font-medium text-gray-800" style={{ letterSpacing: '-0.01em' }}>
+        <h1
+          className="text-[16px] font-bold"
+          style={{ color: '#1E1B4B', letterSpacing: '-0.02em' }}
+        >
           {getGreeting(userName)}
         </h1>
       </div>
 
       <div className="flex items-center gap-2">
         <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
-          style={{ background: '#FAFAF9', borderColor: '#ECEAE5' }}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+          style={{ background: '#F0EFFF', border: '0.5px solid #E5E7EB' }}
         >
-          <div
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ background: readinessColor }}
-          />
-          <span className="text-[12px] font-semibold" style={{ color: readinessColor }}>
+          <div className="w-2 h-2 rounded-full" style={{ background: readinessColor }} />
+          <span className="text-[12px] font-bold" style={{ color: readinessColor }}>
             {readiness}%
           </span>
-          <span className="text-[10px] text-gray-400 hidden sm:block">{readinessLabel}</span>
+          <span className="text-[10px] font-medium hidden sm:block" style={{ color: '#6B7280' }}>
+            {readinessLabel}
+          </span>
         </div>
 
         <button
           onClick={onCalmMode}
-          className={`text-[11px] px-3 py-1.5 rounded-full border transition-all duration-300 hidden sm:block ${
-            calmMode
-              ? 'bg-[#F0EFFE] text-[#6C63B6] border-[#C5C1EE]'
-              : 'bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100'
-          }`}
+          className="text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all hidden sm:block"
+          style={calmMode
+            ? { background: '#EDE9FE', color: '#7C3AED', borderColor: '#C4B5FD' }
+            : { background: '#F9FAFB', color: '#6B7280', borderColor: '#E5E7EB' }
+          }
         >
           {calmMode ? '◌ Calm on' : '◌ Calm'}
         </button>
 
         <button
           onClick={onCaptureOpen}
-          className="flex items-center gap-1.5 text-white text-[11px] font-medium px-3.5 py-1.5 rounded-full transition-all active:scale-95"
-          style={{ background: '#6C63B6' }}
+          className="flex items-center gap-1.5 text-white text-[12px] font-semibold px-4 py-1.5 rounded-full transition-all active:scale-95"
+          style={{ background: '#7C3AED' }}
         >
-          <span className="text-base leading-none">+</span>
+          <span>+</span>
           <span>Capture</span>
         </button>
       </div>
