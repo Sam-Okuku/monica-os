@@ -8,57 +8,60 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #fafaf9;
+      background: #1E1B4B;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      color: #444441;
+      color: #fff;
     }
     .container {
       text-align: center;
       padding: 48px 32px;
-      max-width: 360px;
+      max-width: 320px;
     }
-    .dot {
-      width: 48px;
-      height: 48px;
-      background: #EEEDFE;
-      border-radius: 50%;
+    .logo {
+      width: 64px;
+      height: 64px;
+      background: #7C3AED;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+      color: white;
       margin: 0 auto 24px;
-      font-size: 22px;
     }
     h1 {
       font-size: 20px;
-      font-weight: 500;
+      font-weight: 700;
       margin-bottom: 10px;
-      color: #2C2C2A;
+      letter-spacing: -0.02em;
     }
     p {
-      font-size: 14px;
-      color: #888780;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
       line-height: 1.6;
       margin-bottom: 28px;
     }
     button {
-      background: #534AB7;
+      background: #7C3AED;
       color: white;
       border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="dot">○</div>
+    <div class="logo">M</div>
     <h1>You are offline</h1>
-    <p>Monica OS works fully offline once installed. Open the app from your home screen to continue working without internet.</p>
+    <p>Monica OS works fully offline once installed. Open the app from your home screen.</p>
     <button onclick="window.location.reload()">Try again</button>
   </div>
 </body>

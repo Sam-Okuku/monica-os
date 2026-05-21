@@ -1,39 +1,37 @@
 {
   "name": "Monica OS",
   "short_name": "Monica",
-  "description": "Calm executive operational intelligence",
-  "start_url": "/?source=pwa",
+  "description": "Executive operations command centre",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#534AB7",
   "orientation": "any",
+  "background_color": "#1E1B4B",
+  "theme_color": "#1E1B4B",
   "icons": [
-  {
-    "src": "/icons/icon-192.svg",
-    "sizes": "192x192",
-    "type": "image/svg+xml",
-    "purpose": "any"
-  },
-  {
-    "src": "/icons/icon-512.svg",
-    "sizes": "512x512",
-    "type": "image/svg+xml",
-    "purpose": "any"
-  }
-]
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ],
   "shortcuts": [
     {
       "name": "Quick Capture",
       "short_name": "Capture",
-      "url": "/?capture=true",
-      "description": "Open quick capture"
+      "url": "/?capture=true"
     },
     {
-      "name": "Today's Tasks",
-      "short_name": "Tasks",
-      "url": "/tasks",
-      "description": "View today's tasks"
+      "name": "Tracker",
+      "short_name": "Tracker",
+      "url": "/tracker"
     }
   ]
 }
