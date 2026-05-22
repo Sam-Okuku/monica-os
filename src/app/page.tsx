@@ -71,7 +71,11 @@ export default function Dashboard() {
     const today = todayDate()
     const all = await db.events.toArray()
     return all
-      .filter(e => e.starts_at.startsWith(today))
+      .filter(e =>
+        e.starts_at.startsWith(today) &&
+        e.lifecycle !== 'cancelled' &&
+        e.lifecycle !== 'archived'
+      )
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
   }, [refresh]) ?? []
 
@@ -81,11 +85,24 @@ export default function Dashboard() {
 
   const now = Date.now()
   const activeEvents = useMemo(() =>
-    todaysEvents.filter(e => new Date(e.ends_at).getTime() >= now || e.ends_at === e.starts_at),
+    todaysEvents.filter(e =>
+      e.lifecycle === 'active' &&
+      new Date(e.ends_at).getTime() >= now
+    ),
     [todaysEvents, now]
   )
-  const pastEvents = useMemo(() =>
-    todaysEvents.filter(e => new Date(e.ends_at).getTime() < now && e.ends_at !== e.starts_at),
+
+  const completedTodayEvents = useMemo(() =>
+    todaysEvents.filter(e => e.lifecycle === 'completed'),
+    [todaysEvents]
+  )
+
+  const pastActiveEvents = useMemo(() =>
+    todaysEvents.filter(e =>
+      e.lifecycle === 'active' &&
+      new Date(e.ends_at).getTime() < now &&
+      e.ends_at !== e.starts_at
+    ),
     [todaysEvents, now]
   )
 
@@ -269,24 +286,27 @@ export default function Dashboard() {
                   <p className="text-[12px] font-semibold" style={{ color: '#374151' }}>
                     {activeEvents.filter(e => !e.is_shadow).length} upcoming
                   </p>
-                  {pastEvents.length > 0 && (
+                  {(completedTodayEvents.length > 0 || pastActiveEvents.length > 0) && (
                     <span className="text-[10px] font-medium" style={{ color: '#9CA3AF' }}>
-                      {pastEvents.length} done
+                      {completedTodayEvents.length + pastActiveEvents.length} done
                     </span>
                   )}
                 </div>
               </div>
               <div className="px-4 py-3 max-h-72 overflow-y-auto">
-                {activeEvents.length === 0 && pastEvents.length === 0 ? (
+                {activeEvents.length === 0 && completedTodayEvents.length === 0 && pastActiveEvents.length === 0 ? (
                   <EmptyState icon="◻" title="No events today" />
                 ) : (
                   <>
                     {activeEvents.map(event => (
                       <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
                     ))}
-                    {pastEvents.length > 0 && (
-                      <div className="mt-1">
-                        {pastEvents.map(event => (
+                    {(completedTodayEvents.length > 0 || pastActiveEvents.length > 0) && (
+                      <div className="mt-2 pt-2" style={{ borderTop: '0.5px solid #F3F4F6' }}>
+                        {completedTodayEvents.map(event => (
+                          <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                        ))}
+                        {pastActiveEvents.map(event => (
                           <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
                         ))}
                       </div>

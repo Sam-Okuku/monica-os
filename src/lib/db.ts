@@ -41,6 +41,7 @@ export interface CalendarEvent {
   executive_id?: number
   location?: string
   notes?: string
+  lifecycle: 'active' | 'completed' | 'archived' | 'cancelled'
 }
 
 export interface Note {
@@ -130,10 +131,10 @@ class MonicaOSDatabase extends Dexie {
   constructor() {
     super('MonicaOS')
 
-    this.version(2).stores({
+    this.version(3).stores({
       tasks: '++id, status, priority, is_boss_priority, due_at, executive_id, created_at',
       follow_ups: '++id, status, task_id, expected_by, contact_name, sent_at',
-      events: '++id, starts_at, ends_at, executive_id, event_type',
+      events: '++id, starts_at, ends_at, executive_id, event_type, lifecycle',
       notes: '++id, event_id, created_at',
       captures: '++id, status, captured_at, auto_tag',
       reminders: '++id, fire_at, sent, task_id',

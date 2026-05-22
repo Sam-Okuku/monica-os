@@ -81,7 +81,7 @@ export async function getAllEvents() {
 }
 
 export async function createEvent(data: Omit<import('./db').CalendarEvent, 'id'>) {
-  return db.events.add(data)
+  return db.events.add({ ...data, lifecycle: data.lifecycle ?? 'active' })
 }
 
 export async function updateEvent(id: number, data: Partial<import('./db').CalendarEvent>) {
