@@ -58,8 +58,8 @@ export default function TasksPage() {
             </div>
             <button
               onClick={() => setAddOpen(true)}
-              className="flex items-center gap-1.5 text-white text-[11px] font-medium px-4 py-2 rounded-full transition-all active:scale-95"
-              style={{ background: '#6C63B6' }}
+              className="text-white text-[11px] font-bold px-4 py-2 rounded-full transition-all active:scale-95"
+              style={{ background: '#7C3AED' }}
             >
               + Add task
             </button>
@@ -69,10 +69,10 @@ export default function TasksPage() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className="px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all"
+                className="px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all"
                 style={filter === f.key
-                  ? { background: '#6C63B6', color: '#FFFFFF' }
-                  : { background: '#F5F4F2', color: '#7A7874' }
+                  ? { background: '#7C3AED', color: '#FFFFFF' }
+                  : { background: '#F3F4F6', color: '#374151' }
                 }
               >
                 {f.label}
@@ -84,38 +84,39 @@ export default function TasksPage() {
         <main className="flex-1 p-4 lg:p-6 max-w-2xl mx-auto w-full space-y-4">
 
           {filter === 'pending' && bossTasks.length > 0 && (
-            <div>
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
+            >
               <div
-                className="rounded-xl overflow-hidden"
-                style={{ background: '#FFFFFF', border: '0.5px solid #ECEAE5' }}
+                className="px-4 py-3 border-b"
+                style={{ borderColor: '#EDE9FE', background: '#F5F3FF' }}
               >
-                <div
-                  className="px-4 py-3 border-b"
-                  style={{ borderColor: '#F0EFFE', background: '#FAFAFE' }}
+                <p
+                  className="text-[10px] font-black tracking-[0.08em] uppercase"
+                  style={{ color: '#7C3AED' }}
                 >
-                  <p className="text-[10px] font-semibold tracking-[0.08em] uppercase" style={{ color: '#6C63B6' }}>
-                    ★ What Richard cares about today
-                  </p>
-                </div>
-                <div className="px-3 py-1">
-                  {bossTasks.map(task => (
-                    <TaskItem key={task.id} task={task} onUpdate={forceRefresh} />
-                  ))}
-                </div>
+                  ★ Boss priorities
+                </p>
+              </div>
+              <div className="px-3 py-1">
+                {bossTasks.map(task => (
+                  <TaskItem key={task.id} task={task} onUpdate={forceRefresh} />
+                ))}
               </div>
             </div>
           )}
 
           <div
             className="rounded-xl overflow-hidden"
-            style={{ background: '#FFFFFF', border: '0.5px solid #ECEAE5' }}
+            style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
           >
             {sorted.length === 0 ? (
               <EmptyState
                 icon="✓"
-                title={filter === 'done' ? 'Nothing completed yet' : 'Nothing here'}
-                description={filter === 'pending' ? 'Add a task above to get started' : undefined}
-                action={filter === 'done' ? undefined : { label: 'Add a task', onClick: () => setAddOpen(true) }}
+                title={filter === 'done' ? 'Nothing completed yet' : 'No tasks here'}
+                description="Add a task using the button above"
+                action={filter !== 'done' ? { label: 'Add first task', onClick: () => setAddOpen(true) } : undefined}
               />
             ) : (
               <div className="px-3 py-1">
@@ -127,6 +128,7 @@ export default function TasksPage() {
           </div>
         </main>
       </div>
+
       <BottomNav />
       <AddTaskModal isOpen={addOpen} onClose={() => setAddOpen(false)} onAdded={forceRefresh} />
       <QuickCapture isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
