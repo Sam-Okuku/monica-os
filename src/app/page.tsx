@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
 import { ReadinessScore } from '@/components/dashboard/ReadinessScore'
 import { TrackerPulse } from '@/components/dashboard/TrackerPulse'
-import { DayClose } from '@/components/dashboard/DayClose'
+import { OperationalRhythm } from '@/components/dashboard/OperationalRhythm'
 import { TaskItem } from '@/components/tasks/TaskItem'
 import { FollowUpItem } from '@/components/followups/FollowUpItem'
 import { EventItem } from '@/components/calendar/EventItem'
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [dayCloseOpen, setDayCloseOpen] = useState(false)
   const [calmMode, setCalmMode] = useState(false)
   const [refresh, setRefresh] = useState(0)
+
   const dayMode = getDayMode()
   const forceRefresh = useCallback(() => setRefresh(r => r + 1), [])
 
@@ -84,6 +85,7 @@ export default function Dashboard() {
   ) ?? []
 
   const now = Date.now()
+
   const activeEvents = useMemo(() =>
     todaysEvents.filter(e =>
       e.lifecycle === 'active' &&
@@ -151,6 +153,7 @@ export default function Dashboard() {
 
         <main className="flex-1 p-4 lg:p-5 max-w-5xl mx-auto w-full">
 
+          {/* Day mode header */}
           <div
             className="mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl"
             style={{ background: modeBg, border: `0.5px solid ${modeColor}30` }}
@@ -187,20 +190,18 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Top widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             <div className="lg:col-span-2">
               <ReadinessScore />
             </div>
-            <div
-              className="flex items-center px-4 py-3 rounded-xl"
-              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
-            >
+
+            <div className="flex items-center px-4 py-3 rounded-xl"
+              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}>
               <div className="w-full">
                 <p className="monica-label">Day forecast</p>
-                <p
-                  className="text-[14px] font-bold mb-2"
-                  style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}
-                >
+                <p className="text-[14px] font-bold mb-2"
+                  style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}>
                   {forecast.label}
                 </p>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
@@ -220,8 +221,10 @@ export default function Dashboard() {
             <TrackerPulse />
           </div>
 
+          {/* Main grids */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
 
+            {/* Tasks */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head flex items-center justify-between">
                 <div>
@@ -245,6 +248,7 @@ export default function Dashboard() {
                   +
                 </button>
               </div>
+
               <div className="px-3 py-1 max-h-72 overflow-y-auto">
                 {sortedTasks.length === 0 && doneTasks.length === 0 ? (
                   <EmptyState icon="✓" title="All clear" description="No pending tasks today" />
@@ -261,6 +265,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Follow-ups */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Follow-up radar</p>
@@ -279,6 +284,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Events */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Today's agenda</p>
@@ -293,14 +299,18 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
+
               <div className="px-4 py-3 max-h-72 overflow-y-auto">
-                {activeEvents.length === 0 && completedTodayEvents.length === 0 && pastActiveEvents.length === 0 ? (
+                {activeEvents.length === 0 &&
+                completedTodayEvents.length === 0 &&
+                pastActiveEvents.length === 0 ? (
                   <EmptyState icon="◻" title="No events today" />
                 ) : (
                   <>
                     {activeEvents.map(event => (
                       <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
                     ))}
+
                     {(completedTodayEvents.length > 0 || pastActiveEvents.length > 0) && (
                       <div className="mt-2 pt-2" style={{ borderTop: '0.5px solid #F3F4F6' }}>
                         {completedTodayEvents.map(event => (
@@ -316,6 +326,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Inbox */}
             {rawCaptures.length > 0 && (
               <div className="monica-card overflow-hidden">
                 <div className="monica-section-head">
@@ -348,22 +359,9 @@ export default function Dashboard() {
 
           </div>
 
-          <div
-            className="mt-4 flex items-center justify-between px-5 py-3.5 rounded-xl"
-            style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
-          >
-            <p className="text-[12px] font-medium italic" style={{ color: '#6B7280' }}>
-              {doneTasks.length === 0
-                ? 'Start with the starred priorities.'
-                : `${doneTasks.length} thing${doneTasks.length > 1 ? 's' : ''} handled today.`}
-            </p>
-            <button
-              onClick={() => setDayCloseOpen(true)}
-              className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
-              style={{ background: '#EDE9FE', color: '#7C3AED' }}
-            >
-              Close day →
-            </button>
+          {/* Replaced CTA section */}
+          <div className="mt-4">
+            <OperationalRhythm />
           </div>
 
         </main>
@@ -373,13 +371,6 @@ export default function Dashboard() {
       <QuickCapture isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
       <AddTaskModal isOpen={addTaskOpen} onClose={() => setAddTaskOpen(false)} onAdded={forceRefresh} />
       <InstallPrompt />
-      {dayCloseOpen && (
-        <DayClose
-          doneTodayCount={doneTasks.length}
-          pendingCount={pendingTasks.length}
-          onClose={() => setDayCloseOpen(false)}
-        />
-      )}
     </div>
   )
 }
