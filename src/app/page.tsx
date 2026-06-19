@@ -1,8 +1,21 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, seedInitialData } from '@/lib/db'
+import { seedInitialData } from '@/lib/seed'
+import {
+  getTodaysTasks,
+  getTasksCompletedToday,
+  getActiveFollowUps,
+  getTodaysEvents,
+  getRawCaptures,
+} from '@/lib/db.queries'
+import {
+  countDangerFollowUps,
+  isActiveEvent,
+  isPastActiveEvent,
+} from '@/lib/domain'
+import { useNow } from '@/hooks/useNow'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
@@ -16,7 +29,7 @@ import { QuickCapture } from '@/components/capture/QuickCapture'
 import { AddTaskModal } from '@/components/tasks/AddTaskModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { InstallPrompt } from '@/components/shared/InstallPrompt'
-import { getDayForecast, todayDate } from '@/lib/utils'
+import { getDayForecast } from '@/lib/utils'
 
 function getDayMode(): 'opening' | 'active' | 'closing' {
   const h = new Date().getHours()
@@ -34,12 +47,10 @@ function getDayModeLabel(mode: 'opening' | 'active' | 'closing'): string {
 export default function Dashboard() {
   const [captureOpen, setCaptureOpen] = useState(false)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
-  const [dayCloseOpen, setDayCloseOpen] = useState(false)
   const [calmMode, setCalmMode] = useState(false)
-  const [refresh, setRefresh] = useState(0)
 
   const dayMode = getDayMode()
-  const forceRefresh = useCallback(() => setRefresh(r => r + 1), [])
+  const now = useNow()
 
   useEffect(() => { seedInitialData() }, [])
 
@@ -54,76 +65,28 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const pendingTasks = useLiveQuery(
-    () => db.tasks.where('status').equals('pending').toArray(), [refresh]
-  ) ?? []
+  const pendingTasks = useLiveQuery(() => getTodaysTasks()) ?? []
+  const doneTasks = useLiveQuery(() => getTasksCompletedToday()) ?? []
+  const followUps = useLiveQuery(() => getActiveFollowUps()) ?? []
+  const todaysEvents = useLiveQuery(() => getTodaysEvents()) ?? []
+  const rawCaptures = useLiveQuery(() => getRawCaptures()) ?? []
 
-  const doneTasks = useLiveQuery(async () => {
-    const today = todayDate()
-    const all = await db.tasks.where('status').equals('done').toArray()
-    return all.filter(t => t.completed_at?.startsWith(today))
-  }, [refresh]) ?? []
-
-  const followUps = useLiveQuery(
-    () => db.follow_ups.where('status').anyOf(['waiting', 'nudged']).toArray(), [refresh]
-  ) ?? []
-
-  const todaysEvents = useLiveQuery(async () => {
-    const today = todayDate()
-    const all = await db.events.toArray()
-    return all
-      .filter(e =>
-        e.starts_at.startsWith(today) &&
-        e.lifecycle !== 'cancelled' &&
-        e.lifecycle !== 'archived'
-      )
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-  }, [refresh]) ?? []
-
-  const rawCaptures = useLiveQuery(
-    () => db.captures.where('status').equals('raw').toArray(), [refresh]
-  ) ?? []
-
-  const now = Date.now()
-
-  const activeEvents = useMemo(() =>
-    todaysEvents.filter(e =>
-      e.lifecycle === 'active' &&
-      new Date(e.ends_at).getTime() >= now
-    ),
+  const activeEvents = useMemo(
+    () => todaysEvents.filter(e => isActiveEvent(e, now)),
     [todaysEvents, now]
   )
 
-  const completedTodayEvents = useMemo(() =>
-    todaysEvents.filter(e => e.lifecycle === 'completed'),
+  const completedTodayEvents = useMemo(
+    () => todaysEvents.filter(e => e.lifecycle === 'completed'),
     [todaysEvents]
   )
 
-  const pastActiveEvents = useMemo(() =>
-    todaysEvents.filter(e =>
-      e.lifecycle === 'active' &&
-      new Date(e.ends_at).getTime() < now &&
-      e.ends_at !== e.starts_at
-    ),
+  const pastActiveEvents = useMemo(
+    () => todaysEvents.filter(e => isPastActiveEvent(e, now)),
     [todaysEvents, now]
   )
 
-  const sortedTasks = useMemo(() => [...pendingTasks].sort((a, b) => {
-    const p: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
-    if (a.is_boss_priority !== b.is_boss_priority) return a.is_boss_priority ? -1 : 1
-    return (p[a.priority] ?? 2) - (p[b.priority] ?? 2)
-  }), [pendingTasks])
-
-  const sortedFollowUps = useMemo(() =>
-    [...followUps].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()),
-    [followUps]
-  )
-
-  const dangerFollowUps = followUps.filter(f => {
-    const h = Math.abs((Date.now() - new Date(f.sent_at).getTime()) / 3600000)
-    return h >= 36
-  }).length
-
+  const dangerFollowUps = countDangerFollowUps(followUps, now)
   const unbriefedMeetings = activeEvents.filter(e => e.prep_needed && !e.brief_sent).length
   const forecast = getDayForecast(pendingTasks.length, followUps.length)
 
@@ -153,7 +116,6 @@ export default function Dashboard() {
 
         <main className="flex-1 p-4 lg:p-5 max-w-5xl mx-auto w-full">
 
-          {/* Day mode header */}
           <div
             className="mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl"
             style={{ background: modeBg, border: `0.5px solid ${modeColor}30` }}
@@ -190,7 +152,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Top widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             <div className="lg:col-span-2">
               <ReadinessScore />
@@ -221,10 +182,8 @@ export default function Dashboard() {
             <TrackerPulse />
           </div>
 
-          {/* Main grids */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
 
-            {/* Tasks */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head flex items-center justify-between">
                 <div>
@@ -250,41 +209,39 @@ export default function Dashboard() {
               </div>
 
               <div className="px-3 py-1 max-h-72 overflow-y-auto">
-                {sortedTasks.length === 0 && doneTasks.length === 0 ? (
+                {pendingTasks.length === 0 && doneTasks.length === 0 ? (
                   <EmptyState icon="✓" title="All clear" description="No pending tasks today" />
                 ) : (
                   <>
-                    {sortedTasks.slice(0, 7).map(task => (
-                      <TaskItem key={task.id} task={task} onUpdate={forceRefresh} />
+                    {pendingTasks.slice(0, 7).map(task => (
+                      <TaskItem key={task.id} task={task} />
                     ))}
                     {doneTasks.slice(0, 2).map(task => (
-                      <TaskItem key={task.id} task={task} onUpdate={forceRefresh} />
+                      <TaskItem key={task.id} task={task} />
                     ))}
                   </>
                 )}
               </div>
             </div>
 
-            {/* Follow-ups */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Follow-up radar</p>
                 <p className="text-[12px] font-semibold" style={{ color: '#374151' }}>
-                  {sortedFollowUps.length} awaiting response
+                  {followUps.length} awaiting response
                 </p>
               </div>
               <div className="px-4 py-1 max-h-72 overflow-y-auto">
-                {sortedFollowUps.length === 0 ? (
+                {followUps.length === 0 ? (
                   <EmptyState icon="◎" title="Radar clear" description="No pending follow-ups" />
                 ) : (
-                  sortedFollowUps.map(f => (
-                    <FollowUpItem key={f.id} followUp={f} onUpdate={forceRefresh} />
+                  followUps.map(f => (
+                    <FollowUpItem key={f.id} followUp={f} />
                   ))
                 )}
               </div>
             </div>
 
-            {/* Events */}
             <div className="monica-card overflow-hidden">
               <div className="monica-section-head">
                 <p className="monica-label">Today's agenda</p>
@@ -308,16 +265,16 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {activeEvents.map(event => (
-                      <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                      <EventItem key={event.id} event={event} />
                     ))}
 
                     {(completedTodayEvents.length > 0 || pastActiveEvents.length > 0) && (
                       <div className="mt-2 pt-2" style={{ borderTop: '0.5px solid #F3F4F6' }}>
                         {completedTodayEvents.map(event => (
-                          <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                          <EventItem key={event.id} event={event} />
                         ))}
                         {pastActiveEvents.map(event => (
-                          <EventItem key={event.id} event={event} onUpdate={forceRefresh} />
+                          <EventItem key={event.id} event={event} />
                         ))}
                       </div>
                     )}
@@ -326,7 +283,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Inbox */}
             {rawCaptures.length > 0 && (
               <div className="monica-card overflow-hidden">
                 <div className="monica-section-head">
@@ -359,7 +315,6 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Replaced CTA section */}
           <div className="mt-4">
             <OperationalRhythm />
           </div>
@@ -369,7 +324,7 @@ export default function Dashboard() {
 
       <BottomNav />
       <QuickCapture isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
-      <AddTaskModal isOpen={addTaskOpen} onClose={() => setAddTaskOpen(false)} onAdded={forceRefresh} />
+      <AddTaskModal isOpen={addTaskOpen} onClose={() => setAddTaskOpen(false)} />
       <InstallPrompt />
     </div>
   )
