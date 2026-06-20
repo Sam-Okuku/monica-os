@@ -2,12 +2,11 @@
 
 import { useState } from 'react'
 import { createTask } from '@/lib/db.queries'
-import { nowISO } from '@/lib/utils'
 
 interface AddTaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onAdded: () => void
+  onAdded?: () => void
 }
 
 export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
@@ -29,15 +28,22 @@ export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
       due_at: dueAt || undefined,
       source: 'manual',
     })
-    setTitle(''); setPriority('normal'); setCategory('exec'); setIsBoss(false); setDueAt('')
-    onAdded()
+    setTitle('')
+    setPriority('normal')
+    setCategory('exec')
+    setIsBoss(false)
+    setDueAt('')
+    onAdded?.()
     onClose()
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/20" />
       <div
         className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-white rounded-2xl border border-gray-100 shadow-lg slide-up"
@@ -65,10 +71,13 @@ export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
               <div className="flex flex-wrap gap-1">
                 {['urgent', 'high', 'normal', 'low'].map(p => (
                   <button
-                    key={p} type="button"
+                    key={p}
+                    type="button"
                     onClick={() => setPriority(p)}
                     className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${
-                      priority === p ? 'bg-[#534AB7] text-white border-[#534AB7]' : 'bg-gray-50 text-gray-400 border-gray-100'
+                      priority === p
+                        ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                        : 'bg-gray-50 text-gray-400 border-gray-100'
                     }`}
                   >
                     {p}
@@ -76,16 +85,18 @@ export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
                 ))}
               </div>
             </div>
-
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Category</p>
               <div className="flex flex-wrap gap-1">
                 {['exec', 'delegate', 'admin', 'own'].map(c => (
                   <button
-                    key={c} type="button"
+                    key={c}
+                    type="button"
                     onClick={() => setCategory(c)}
                     className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${
-                      category === c ? 'bg-[#534AB7] text-white border-[#534AB7]' : 'bg-gray-50 text-gray-400 border-gray-100'
+                      category === c
+                        ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                        : 'bg-gray-50 text-gray-400 border-gray-100'
                     }`}
                   >
                     {c}
@@ -100,7 +111,7 @@ export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
               <div
                 onClick={() => setIsBoss(!isBoss)}
                 className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                  isBoss ? 'bg-[#534AB7] border-[#534AB7]' : 'border-gray-300'
+                  isBoss ? 'bg-[#7C3AED] border-[#7C3AED]' : 'border-gray-300'
                 }`}
               >
                 {isBoss && <span className="text-white text-[8px]">★</span>}
@@ -118,7 +129,7 @@ export function AddTaskModal({ isOpen, onClose, onAdded }: AddTaskModalProps) {
           <button
             type="submit"
             disabled={!title.trim()}
-            className="w-full py-2.5 bg-[#534AB7] text-white text-sm font-medium rounded-xl hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 bg-[#7C3AED] text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Add task
           </button>

@@ -1,0 +1,1 @@
+export { seedInitialData } from './db'

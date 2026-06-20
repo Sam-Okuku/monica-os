@@ -7,7 +7,7 @@ import { updateEvent, deleteEvent } from '@/lib/db.queries'
 
 interface EventItemProps {
   event: CalendarEvent
-  onUpdate: () => void
+  onUpdate?: () => void
   showActions?: boolean
 }
 
@@ -20,43 +20,26 @@ const EVENT_STYLES: Record<string, { border: string; bg: string; titleColor: str
 }
 
 function getDuration(starts: string, ends: string): number {
-  try {
-    return Math.round((new Date(ends).getTime() - new Date(starts).getTime()) / 60000)
-  } catch { return 0 }
+  try { return Math.round((new Date(ends).getTime() - new Date(starts).getTime()) / 60000) }
+  catch { return 0 }
 }
 
 function ConfirmModal({
-  title,
-  message,
-  confirmLabel,
-  confirmColor,
-  onConfirm,
-  onCancel,
+  title, message, confirmLabel, confirmColor, onConfirm, onCancel,
 }: {
-  title: string
-  message: string
-  confirmLabel: string
-  confirmColor: string
-  onConfirm: () => void
-  onCancel: () => void
+  title: string; message: string; confirmLabel: string; confirmColor: string
+  onConfirm: () => void; onCancel: () => void
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onCancel}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onCancel}>
       <div className="absolute inset-0" style={{ background: 'rgba(30,27,75,0.4)' }} />
       <div
         className="relative w-full max-w-sm mx-4 rounded-2xl p-6 slide-up"
         style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
         onClick={e => e.stopPropagation()}
       >
-        <p className="text-[16px] font-bold mb-2" style={{ color: '#1E1B4B', letterSpacing: '-0.02em' }}>
-          {title}
-        </p>
-        <p className="text-[13px] font-medium mb-6" style={{ color: '#4B5563' }}>
-          {message}
-        </p>
+        <p className="text-[16px] font-bold mb-2" style={{ color: '#1E1B4B', letterSpacing: '-0.02em' }}>{title}</p>
+        <p className="text-[13px] font-medium mb-6" style={{ color: '#4B5563' }}>{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onConfirm}
@@ -79,14 +62,8 @@ function ConfirmModal({
 }
 
 function EditModal({
-  event,
-  onSave,
-  onCancel,
-}: {
-  event: CalendarEvent
-  onSave: () => void
-  onCancel: () => void
-}) {
+  event, onSave, onCancel,
+}: { event: CalendarEvent; onSave: () => void; onCancel: () => void }) {
   const [title, setTitle] = useState(event.title)
   const [startsAt, setStartsAt] = useState(event.starts_at.slice(0, 16))
   const [endsAt, setEndsAt] = useState(event.ends_at.slice(0, 16))
@@ -108,23 +85,15 @@ function EditModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      onClick={onCancel}
-    >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onCancel}>
       <div className="absolute inset-0" style={{ background: 'rgba(30,27,75,0.4)' }} />
       <div
         className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 rounded-2xl overflow-hidden slide-up"
         style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          className="px-5 py-4"
-          style={{ borderBottom: '0.5px solid #F3F4F6' }}
-        >
-          <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#7C3AED' }}>
-            Edit event
-          </p>
+        <div className="px-5 py-4" style={{ borderBottom: '0.5px solid #F3F4F6' }}>
+          <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#7C3AED' }}>Edit event</p>
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -136,12 +105,9 @@ function EditModal({
             className="w-full text-[14px] font-semibold border-b pb-2 transition-colors"
             style={{ color: '#1E1B4B', borderColor: '#E5E7EB' }}
           />
-
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>
-                Start
-              </p>
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>Start</p>
               <input
                 type="datetime-local"
                 value={startsAt}
@@ -151,9 +117,7 @@ function EditModal({
               />
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>
-                End
-              </p>
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>End</p>
               <input
                 type="datetime-local"
                 value={endsAt}
@@ -163,27 +127,20 @@ function EditModal({
               />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>
-                Type
-              </p>
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>Type</p>
               <select
                 value={eventType}
                 onChange={e => setEventType(e.target.value as any)}
                 className="w-full text-[12px] border rounded-lg px-2.5 py-1.5"
                 style={{ color: '#374151', borderColor: '#E5E7EB' }}
               >
-                {['meeting', 'buffer', 'deadline', 'prep', 'shadow'].map(t => (
-                  <option key={t}>{t}</option>
-                ))}
+                {['meeting', 'buffer', 'deadline', 'prep', 'shadow'].map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>
-                Location
-              </p>
+              <p className="text-[10px] font-bold tracking-wider uppercase mb-1.5" style={{ color: '#6B7280' }}>Location</p>
               <input
                 value={location}
                 onChange={e => setLocation(e.target.value)}
@@ -193,24 +150,13 @@ function EditModal({
               />
             </div>
           </div>
-
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={prepNeeded}
-              onChange={e => setPrepNeeded(e.target.checked)}
-              className="rounded"
-            />
-            <span className="text-[12px] font-medium" style={{ color: '#374151' }}>
-              Prep needed
-            </span>
+            <input type="checkbox" checked={prepNeeded} onChange={e => setPrepNeeded(e.target.checked)} className="rounded" />
+            <span className="text-[12px] font-medium" style={{ color: '#374151' }}>Prep needed</span>
           </label>
         </div>
 
-        <div
-          className="px-5 py-4 flex gap-3"
-          style={{ borderTop: '0.5px solid #F3F4F6' }}
-        >
+        <div className="px-5 py-4 flex gap-3" style={{ borderTop: '0.5px solid #F3F4F6' }}>
           <button
             onClick={handleSave}
             disabled={!title.trim()}
@@ -246,42 +192,12 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
   const isArchived = event.lifecycle === 'archived'
   const isDimmed = isCompleted || isCancelled || isArchived || event.is_shadow
 
-  const handleComplete = async () => {
-    await updateEvent(event.id!, { lifecycle: 'completed' })
-    setShowMenu(false)
-    onUpdate()
-  }
-
-  const handleArchive = async () => {
-    await updateEvent(event.id!, { lifecycle: 'archived' })
-    setShowMenu(false)
-    onUpdate()
-  }
-
-  const handleCancel = async () => {
-    await updateEvent(event.id!, { lifecycle: 'cancelled' })
-    setShowMenu(false)
-    setShowCancelConfirm(false)
-    onUpdate()
-  }
-
-  const handleDelete = async () => {
-    await deleteEvent(event.id!)
-    setShowDeleteConfirm(false)
-    onUpdate()
-  }
-
-  const handleRestoreActive = async () => {
-    await updateEvent(event.id!, { lifecycle: 'active' })
-    setShowMenu(false)
-    onUpdate()
-  }
-
-  const toggleBrief = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    await updateEvent(event.id!, { brief_sent: !event.brief_sent })
-    onUpdate()
-  }
+  const handleComplete = async () => { await updateEvent(event.id!, { lifecycle: 'completed' }); setShowMenu(false); onUpdate?.() }
+  const handleArchive = async () => { await updateEvent(event.id!, { lifecycle: 'archived' }); setShowMenu(false); onUpdate?.() }
+  const handleCancel = async () => { await updateEvent(event.id!, { lifecycle: 'cancelled' }); setShowMenu(false); setShowCancelConfirm(false); onUpdate?.() }
+  const handleDelete = async () => { await deleteEvent(event.id!); setShowDeleteConfirm(false); onUpdate?.() }
+  const handleRestoreActive = async () => { await updateEvent(event.id!, { lifecycle: 'active' }); setShowMenu(false); onUpdate?.() }
+  const toggleBrief = async (e: React.MouseEvent) => { e.stopPropagation(); await updateEvent(event.id!, { brief_sent: !event.brief_sent }); onUpdate?.() }
 
   const lifecycleBadge = () => {
     if (isCompleted) return { label: '✓ Completed', bg: '#D4EDDA', text: '#1A7A3A' }
@@ -289,7 +205,6 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
     if (isArchived) return { label: '◫ Archived', bg: '#F3F4F6', text: '#6B7280' }
     return null
   }
-
   const badge = lifecycleBadge()
 
   return (
@@ -302,36 +217,24 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
           opacity: isDimmed ? 0.5 : 1,
         }}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false) }}
+        onMouseLeave={() => setHovered(false)}
         onClick={() => setShowMenu(m => !m)}
       >
         <div className="flex-shrink-0 text-right" style={{ minWidth: '44px' }}>
-          <p className="text-[11px] font-semibold" style={{ color: '#374151' }}>
-            {formatTime(event.starts_at)}
-          </p>
-          {duration > 0 && (
-            <p className="text-[9px] font-medium" style={{ color: '#9CA3AF' }}>{duration}m</p>
-          )}
+          <p className="text-[11px] font-semibold" style={{ color: '#374151' }}>{formatTime(event.starts_at)}</p>
+          {duration > 0 && <p className="text-[9px] font-medium" style={{ color: '#9CA3AF' }}>{duration}m</p>}
         </div>
 
         <div className="flex-1 min-w-0">
           <p
             className="text-[13px] font-semibold truncate mb-1"
-            style={{
-              color: isCancelled ? '#9CA3AF' : style.titleColor,
-              textDecoration: isCancelled ? 'line-through' : 'none',
-              letterSpacing: '-0.01em',
-            }}
+            style={{ color: isCancelled ? '#9CA3AF' : style.titleColor, textDecoration: isCancelled ? 'line-through' : 'none', letterSpacing: '-0.01em' }}
           >
             {event.title}
           </p>
-
           <div className="flex items-center gap-2 flex-wrap">
             {badge && (
-              <span
-                className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: badge.bg, color: badge.text }}
-              >
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.text }}>
                 {badge.label}
               </span>
             )}
@@ -339,47 +242,31 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
               <button
                 onClick={toggleBrief}
                 className="text-[9px] font-semibold px-2 py-0.5 rounded-full transition-colors"
-                style={event.brief_sent
-                  ? { background: '#D4EDDA', color: '#1A7A3A' }
-                  : { background: '#FEF3C7', color: '#92400E' }
-                }
+                style={event.brief_sent ? { background: '#D4EDDA', color: '#1A7A3A' } : { background: '#FEF3C7', color: '#92400E' }}
               >
                 {event.brief_sent ? '✓ Briefed' : '! Brief needed'}
               </button>
             )}
-            {event.location && (
-              <span className="text-[9px] font-medium" style={{ color: '#6B7280' }}>
-                ◎ {event.location}
-              </span>
-            )}
-            {event.is_shadow && (
-              <span className="text-[9px]" style={{ color: '#D1D5DB' }}>buffer</span>
-            )}
+            {event.location && <span className="text-[9px] font-medium" style={{ color: '#6B7280' }}>◎ {event.location}</span>}
+            {event.is_shadow && <span className="text-[9px]" style={{ color: '#D1D5DB' }}>buffer</span>}
           </div>
         </div>
 
         {showActions && (hovered || showMenu) && (
-          <div
-            className="flex items-center gap-1 flex-shrink-0"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => { setShowEdit(true); setShowMenu(false) }}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] transition-all hover:opacity-80"
               style={{ background: '#EDE9FE', color: '#7C3AED' }}
               title="Edit"
-            >
-              ✎
-            </button>
+            >✎</button>
             {!isCompleted && !isCancelled && !isArchived && (
               <button
                 onClick={handleComplete}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] transition-all hover:opacity-80"
                 style={{ background: '#D4EDDA', color: '#1A7A3A' }}
                 title="Mark completed"
-              >
-                ✓
-              </button>
+              >✓</button>
             )}
             {(isCompleted || isArchived) && (
               <button
@@ -387,9 +274,7 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] transition-all hover:opacity-80"
                 style={{ background: '#F3F4F6', color: '#6B7280' }}
                 title="Restore to active"
-              >
-                ↺
-              </button>
+              >↺</button>
             )}
             {!isCancelled && !isCompleted && (
               <button
@@ -397,28 +282,20 @@ export function EventItem({ event, onUpdate, showActions = true }: EventItemProp
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] transition-all hover:opacity-80"
                 style={{ background: '#FEF3C7', color: '#92400E' }}
                 title="Cancel event"
-              >
-                ✕
-              </button>
+              >✕</button>
             )}
             <button
               onClick={() => { setShowDeleteConfirm(true); setShowMenu(false) }}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] transition-all hover:opacity-80"
               style={{ background: '#FCE4EC', color: '#9C1B3E' }}
               title="Delete permanently"
-            >
-              ×
-            </button>
+            >×</button>
           </div>
         )}
       </div>
 
       {showEdit && (
-        <EditModal
-          event={event}
-          onSave={() => { setShowEdit(false); onUpdate() }}
-          onCancel={() => setShowEdit(false)}
-        />
+        <EditModal event={event} onSave={() => { setShowEdit(false); onUpdate?.() }} onCancel={() => setShowEdit(false)} />
       )}
 
       {showDeleteConfirm && (

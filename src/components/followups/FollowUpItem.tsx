@@ -6,7 +6,7 @@ import { hoursAgo, getFollowUpAgeColor } from '@/lib/utils'
 
 interface FollowUpItemProps {
   followUp: FollowUp
-  onUpdate: () => void
+  onUpdate?: () => void
 }
 
 const CHANNEL_ICONS: Record<string, string> = {
@@ -18,9 +18,9 @@ export function FollowUpItem({ followUp, onUpdate }: FollowUpItemProps) {
   const ageColor = getFollowUpAgeColor(followUp.sent_at, followUp.expected_by)
   const isResolved = followUp.status === 'resolved'
 
-  const handleResolve = async () => { await resolveFollowUp(followUp.id!); onUpdate() }
-  const handleNudge = async () => { await nudgeFollowUp(followUp.id!); onUpdate() }
-  const handleDefer = async () => { await deferFollowUp(followUp.id!); onUpdate() }
+  const handleResolve = async () => { await resolveFollowUp(followUp.id!); onUpdate?.() }
+  const handleNudge = async () => { await nudgeFollowUp(followUp.id!); onUpdate?.() }
+  const handleDefer = async () => { await deferFollowUp(followUp.id!); onUpdate?.() }
 
   return (
     <div

@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/utils'
 
 interface TaskItemProps {
   task: Task
-  onUpdate: () => void
+  onUpdate?: () => void
 }
 
 export function TaskItem({ task, onUpdate }: TaskItemProps) {
@@ -17,18 +17,18 @@ export function TaskItem({ task, onUpdate }: TaskItemProps) {
   const handleToggle = async () => {
     if (task.status === 'done') {
       await uncompleteTask(task.id!)
-      onUpdate()
+      onUpdate?.()
       return
     }
     setCompleting(true)
     await completeTask(task.id!)
-    setTimeout(() => { setCompleting(false); onUpdate() }, 450)
+    setTimeout(() => { setCompleting(false); onUpdate?.() }, 450)
   }
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation()
     await deleteTask(task.id!)
-    onUpdate()
+    onUpdate?.()
   }
 
   const done = task.status === 'done'
