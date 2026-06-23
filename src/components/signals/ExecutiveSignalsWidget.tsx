@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { db } from '@/lib/db'
+import { ExecutiveSignal } from '@/lib/signals/types'
 import { SignalReviewModal } from './SignalReviewModal'
-import { SignalCard } from './SignalCard'
 
 interface SignalStats {
   pending: number
   riskCount: number
   patternsLearned: number
   handledToday: number
-  topSignals: Awaited<ReturnType<typeof db.executive_signals.toArray>>
+  topSignals: ExecutiveSignal[]
 }
 
 export function ExecutiveSignalsWidget() {
@@ -21,16 +21,21 @@ export function ExecutiveSignalsWidget() {
   useEffect(() => {
     async function load() {
       const today = new Date().toISOString().split('T')[0]
-      const all = await db.executive_signals.toArray()
+
+      const [all, patternsCount] = await Promise.all([
+        db.executive_signals.toArray(),
+        db.signal_learning_patterns.count(),
+      ])
 
       const pending = all.filter(s => s.status === 'pending')
-      const riskCount = pending.filter(s => s.riskLevel === 'high' || s.conflictDetail).length
-      const patternsLearned = await db.signal_learning_patterns.count()
+      const riskCount = pending.filter(
+        s => s.riskLevel === 'high' || Boolean(s.conflictDetail)
+      ).length
       const handledToday = all.filter(
         s => s.status === 'accepted' && s.acceptedAt?.startsWith(today)
       ).length
 
-      const topSignals = pending
+      const topSignals: ExecutiveSignal[] = [...pending]
         .sort((a, b) => {
           if (a.riskLevel === 'high' && b.riskLevel !== 'high') return -1
           if (b.riskLevel === 'high' && a.riskLevel !== 'high') return 1
@@ -38,8 +43,15 @@ export function ExecutiveSignalsWidget() {
         })
         .slice(0, 2)
 
-      setStats({ pending: pending.length, riskCount, patternsLearned, handledToday, topSignals })
+      setStats({
+        pending: pending.length,
+        riskCount,
+        patternsLearned: patternsCount,
+        handledToday,
+        topSignals,
+      })
     }
+
     load()
   }, [refresh])
 
@@ -64,7 +76,10 @@ export function ExecutiveSignalsWidget() {
             >
               Executive Signals
             </p>
-            <p className="text-[22px] font-black text-white" style={{ letterSpacing: '-0.03em' }}>
+            <p
+              className="text-[22px] font-black text-white"
+              style={{ letterSpacing: '-0.03em' }}
+            >
               {stats.pending > 0 ? `${stats.pending} awaiting review` : 'All reviewed ✓'}
             </p>
           </div>
@@ -106,10 +121,16 @@ export function ExecutiveSignalsWidget() {
                 borderRight: i < 2 ? '0.5px solid rgba(255,255,255,0.06)' : 'none',
               }}
             >
-              <p className="text-[20px] font-black" style={{ color: stat.color, letterSpacing: '-0.03em' }}>
+              <p
+                className="text-[20px] font-black"
+                style={{ color: stat.color, letterSpacing: '-0.03em' }}
+              >
                 {stat.value}
               </p>
-              <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p
+                className="text-[9px] font-bold uppercase tracking-wider"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+              >
                 {stat.label}
               </p>
             </div>
@@ -120,24 +141,39 @@ export function ExecutiveSignalsWidget() {
         {stats.topSignals.length > 0 && (
           <div
             className="mx-5 mb-5 rounded-xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.06)' }}
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '0.5px solid rgba(255,255,255,0.06)',
+            }}
           >
             {stats.topSignals.map((signal, i) => (
               <div
                 key={signal.id}
                 className="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 transition-all"
-                style={{ borderBottom: i < stats.topSignals.length - 1 ? '0.5px solid rgba(255,255,255,0.06)' : 'none' }}
+                style={{
+                  borderBottom:
+                    i < stats.topSignals.length - 1
+                      ? '0.5px solid rgba(255,255,255,0.06)'
+                      : 'none',
+                }}
                 onClick={() => setModalOpen(true)}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {signal.riskLevel === 'high' && (
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: '#F48FB1', color: '#1E1B4B' }}>
+                  {(signal.riskLevel === 'high' || signal.conflictDetail) && (
+                    <span
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
+                      style={{ background: '#F48FB1', color: '#1E1B4B' }}
+                    >
                       RISK
                     </span>
                   )}
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-white truncate">{signal.subject}</p>
-                    <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{signal.senderName}</p>
+                    <p className="text-[11px] font-semibold text-white truncate">
+                      {signal.subject}
+                    </p>
+                    <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {signal.senderName}
+                    </p>
                   </div>
                 </div>
                 <span
@@ -155,7 +191,10 @@ export function ExecutiveSignalsWidget() {
         {stats.handledToday > 0 && (
           <div
             className="mx-5 mb-5 px-4 py-2.5 rounded-xl flex items-center gap-2"
-            style={{ background: 'rgba(76,175,80,0.12)', border: '0.5px solid rgba(76,175,80,0.2)' }}
+            style={{
+              background: 'rgba(76,175,80,0.12)',
+              border: '0.5px solid rgba(76,175,80,0.2)',
+            }}
           >
             <span style={{ color: '#4CAF50', fontSize: '12px' }}>★</span>
             <p className="text-[11px] font-medium" style={{ color: '#86EFAC' }}>
@@ -167,7 +206,10 @@ export function ExecutiveSignalsWidget() {
 
       <SignalReviewModal
         isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setRefresh(r => r + 1) }}
+        onClose={() => {
+          setModalOpen(false)
+          setRefresh(r => r + 1)
+        }}
       />
     </>
   )
