@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '@/lib/db'
 import { todayDate, hoursAgo } from '@/lib/utils'
+import { MorningSignalsSummary } from '@/components/signals/MorningSignalsSummary'
+import { EveningSignalsSummary } from '@/components/signals/EveningSignalsSummary'
+import { TrustDigest } from '@/components/signals/TrustDigest'
+import { ExecutiveSignal } from '@/lib/signals/types'
 
 type DayPhase = 'morning' | 'midday' | 'evening'
 
@@ -28,18 +32,20 @@ interface OperationalData {
   upcomingMeetings: { title: string; starts_at: string }[]
   carryoverTasks: { title: string; priority: string }[]
   resolvedFollowUpsToday: number
+  pendingSignals: ExecutiveSignal[]
 }
 
 async function loadOperationalData(): Promise<OperationalData> {
   const today = todayDate()
   const now = Date.now()
 
-  const [tasks, followUps, events, actions, departments] = await Promise.all([
+  const [tasks, followUps, events, actions, departments, pendingSignals] = await Promise.all([
     db.tasks.toArray(),
     db.follow_ups.toArray(),
     db.events.toArray(),
     db.actions.toArray(),
     db.departments.toArray(),
+    db.executive_signals.where('status').equals('pending').toArray(),
   ])
 
   const pendingTasks = tasks.filter(t => t.status === 'pending')
@@ -72,7 +78,6 @@ async function loadOperationalData(): Promise<OperationalData> {
     .slice(0, 3)
     .map(e => ({ title: e.title, starts_at: e.starts_at }))
 
-  // At-risk departments
   const atRisk: string[] = []
   for (const dept of departments) {
     const deptActions = actions.filter(a => a.department_id === dept.id)
@@ -109,6 +114,11 @@ async function loadOperationalData(): Promise<OperationalData> {
     upcomingMeetings: upcoming,
     carryoverTasks: carryover,
     resolvedFollowUpsToday: resolvedToday.length,
+    pendingSignals: pendingSignals.sort((a, b) => {
+      if (a.riskLevel === 'high' && b.riskLevel !== 'high') return -1
+      if (b.riskLevel === 'high' && a.riskLevel !== 'high') return 1
+      return b.confidence - a.confidence
+    }),
   }
 }
 
@@ -124,6 +134,8 @@ function formatTime(iso: string): string {
 
 function getLivePulse(data: OperationalData, phase: DayPhase): string {
   if (phase === 'morning') {
+    if (data.pendingSignals.length > 0)
+      return `${data.pendingSignals.length} signal${data.pendingSignals.length > 1 ? 's' : ''} awaiting your review.`
     if (data.unbriefedMeetings.length > 0)
       return `${data.unbriefedMeetings[0].title} needs a brief before it starts.`
     if (data.overdueFollowUps > 0)
@@ -141,7 +153,8 @@ function getLivePulse(data: OperationalData, phase: DayPhase): string {
       return `${data.resolvedFollowUpsToday} follow-up${data.resolvedFollowUpsToday > 1 ? 's' : ''} resolved today.`
     return 'Wrapping up the day.'
   }
-  // midday
+  if (data.pendingSignals.length > 0)
+    return `${data.pendingSignals.length} signal${data.pendingSignals.length > 1 ? 's' : ''} awaiting review.`
   if (data.overdueFollowUps > 0)
     return `${data.overdueFollowUps} follow-up${data.overdueFollowUps > 1 ? 's' : ''} overdue.`
   if (data.upcomingMeetings.length > 0)
@@ -151,6 +164,7 @@ function getLivePulse(data: OperationalData, phase: DayPhase): string {
 
 function getMorningHeadline(data: OperationalData): string {
   const issues = [
+    data.pendingSignals.length > 0 && `${data.pendingSignals.length} signal${data.pendingSignals.length > 1 ? 's' : ''} to review`,
     data.unbriefedMeetings.length > 0 && 'meetings need briefs',
     data.overdueFollowUps > 0 && 'follow-ups overdue',
     data.urgentTasks > 0 && 'urgent tasks waiting',
@@ -280,7 +294,7 @@ function MorningModal({
     },
   ].filter(Boolean) as Array<{ icon: string; color: string; label: string; content: React.ReactNode }>
 
-  const allClear = sections.length === 0
+  const allClear = sections.length === 0 && data.pendingSignals.length === 0
 
   return (
     <div
@@ -355,6 +369,13 @@ function MorningModal({
                   {section.content}
                 </div>
               ))}
+
+              {data.pendingSignals.length > 0 && (
+                <MorningSignalsSummary
+                  signals={data.pendingSignals}
+                  onSignalHandled={onDataChange}
+                />
+              )}
             </div>
           )}
 
@@ -551,6 +572,9 @@ function EveningModal({
               </div>
             </div>
 
+            <EveningSignalsSummary />
+            <TrustDigest />
+
           </div>
 
           <div
@@ -621,7 +645,6 @@ export function OperationalRhythm() {
     : `${getEveningHeadline(data)}${data.pendingTasks > 0 ? ` ${data.pendingTasks} item${data.pendingTasks > 1 ? 's' : ''} remain unresolved.` : ''}`
 
   const ctaButton = isMorning ? 'Open day →' : 'Close day →'
-
   const ctaBg = isMorning ? '#FFFBEB' : '#F5F3FF'
   const ctaBorder = isMorning ? '#FDE68A' : '#DDD6FE'
   const ctaTextColor = isMorning ? '#92400E' : '#4C1D95'
@@ -636,10 +659,7 @@ export function OperationalRhythm() {
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p
-              className="text-[12px] font-medium leading-relaxed mb-0.5"
-              style={{ color: ctaTextColor }}
-            >
+            <p className="text-[12px] font-medium leading-relaxed mb-0.5" style={{ color: ctaTextColor }}>
               {ctaHeadline}
             </p>
             <p className="text-[11px] font-medium" style={{ color: ctaPulseColor }}>

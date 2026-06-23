@@ -22,6 +22,8 @@ import { TopBar } from '@/components/layout/TopBar'
 import { ReadinessScore } from '@/components/dashboard/ReadinessScore'
 import { TrackerPulse } from '@/components/dashboard/TrackerPulse'
 import { OperationalRhythm } from '@/components/dashboard/OperationalRhythm'
+import { ExecutiveSignalsWidget } from '@/components/signals/ExecutiveSignalsWidget'
+import { LearnPatternPrompt } from '@/components/signals/LearnPatternPrompt'
 import { TaskItem } from '@/components/tasks/TaskItem'
 import { FollowUpItem } from '@/components/followups/FollowUpItem'
 import { EventItem } from '@/components/calendar/EventItem'
@@ -156,13 +158,13 @@ export default function Dashboard() {
             <div className="lg:col-span-2">
               <ReadinessScore />
             </div>
-
-            <div className="flex items-center px-4 py-3 rounded-xl"
-              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}>
+            <div
+              className="flex items-center px-4 py-3 rounded-xl"
+              style={{ background: '#FFFFFF', border: '0.5px solid #E5E7EB' }}
+            >
               <div className="w-full">
                 <p className="monica-label">Day forecast</p>
-                <p className="text-[14px] font-bold mb-2"
-                  style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}>
+                <p className="text-[14px] font-bold mb-2" style={{ color: '#1E1B4B', letterSpacing: '-0.01em' }}>
                   {forecast.label}
                 </p>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
@@ -180,6 +182,14 @@ export default function Dashboard() {
 
           <div className="mb-4">
             <TrackerPulse />
+          </div>
+
+          <div className="mb-4">
+            <ExecutiveSignalsWidget />
+          </div>
+
+          <div className="mb-4">
+            <LearnPatternPrompt />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -207,7 +217,6 @@ export default function Dashboard() {
                   +
                 </button>
               </div>
-
               <div className="px-3 py-1 max-h-72 overflow-y-auto">
                 {pendingTasks.length === 0 && doneTasks.length === 0 ? (
                   <EmptyState icon="✓" title="All clear" description="No pending tasks today" />
@@ -256,18 +265,14 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-
               <div className="px-4 py-3 max-h-72 overflow-y-auto">
-                {activeEvents.length === 0 &&
-                completedTodayEvents.length === 0 &&
-                pastActiveEvents.length === 0 ? (
+                {activeEvents.length === 0 && completedTodayEvents.length === 0 && pastActiveEvents.length === 0 ? (
                   <EmptyState icon="◻" title="No events today" />
                 ) : (
                   <>
                     {activeEvents.map(event => (
                       <EventItem key={event.id} event={event} />
                     ))}
-
                     {(completedTodayEvents.length > 0 || pastActiveEvents.length > 0) && (
                       <div className="mt-2 pt-2" style={{ borderTop: '0.5px solid #F3F4F6' }}>
                         {completedTodayEvents.map(event => (

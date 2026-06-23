@@ -1,5 +1,20 @@
 import Dexie, { type Table } from 'dexie'
 
+import type {
+  ExecutiveSignal,
+  SignalLearningPattern,
+  SignalReviewHistory,
+  SignalBatchHistory,
+  SignalTrustMetrics,
+} from './signals/types'
+
+export type {
+  ExecutiveSignal,
+  SignalLearningPattern,
+  SignalReviewHistory,
+  SignalBatchHistory,
+  SignalTrustMetrics,
+}
 export interface Task {
   id?: number
   title: string
@@ -128,6 +143,12 @@ class MonicaOSDatabase extends Dexie {
   departments!: Table<Department>
   actions!: Table<Action>
 
+  executive_signals!: Table<ExecutiveSignal>
+  signal_learning_patterns!: Table<SignalLearningPattern>
+  signal_review_history!: Table<SignalReviewHistory>
+  signal_batch_history!: Table<SignalBatchHistory>
+  signal_trust_metrics!: Table<SignalTrustMetrics>
+
   constructor() {
     super('MonicaOS')
 
@@ -143,6 +164,35 @@ class MonicaOSDatabase extends Dexie {
       settings: 'key',
       departments: '++id, name, order_index',
       actions: '++id, department_id, action_id, status, contact_name',
+    })
+
+    this.version(4).stores({
+      tasks: '++id, status, priority, is_boss_priority, due_at, executive_id, created_at',
+      follow_ups: '++id, status, task_id, expected_by, contact_name, sent_at',
+      events: '++id, starts_at, ends_at, executive_id, event_type, lifecycle',
+      notes: '++id, event_id, created_at',
+      captures: '++id, status, captured_at, auto_tag',
+      reminders: '++id, fire_at, sent, task_id',
+      executives: '++id, name',
+      streak_log: '++id, log_date',
+      settings: 'key',
+      departments: '++id, name, order_index',
+      actions: '++id, department_id, action_id, status, contact_name',
+
+      executive_signals:
+        '++id, batchId, senderEmail, status, suggestedDestination, receivedAt, riskLevel',
+
+      signal_learning_patterns:
+        '++id, [patternType+patternValue], learnedDestination',
+
+      signal_review_history:
+        '++id, signalId, outcome, reviewedAt',
+
+      signal_batch_history:
+        'id, webhookReceivedAt, status',
+
+      signal_trust_metrics:
+        '++id, weekStart',
     })
   }
 }
