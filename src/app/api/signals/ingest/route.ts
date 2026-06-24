@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { classifySignals } from '@/lib/signals/classifier'
 import { createHmac } from 'crypto'
 
-// Node.js runtime — required for crypto module
 export const runtime = 'nodejs'
 
 interface IngestPayload {
@@ -25,9 +24,14 @@ function verifyHmac(payload: string, signature: string, secret: string): boolean
 }
 
 export async function POST(req: NextRequest) {
-  const rawBody = await req.text()
-  const secret = process.env.SIGNAL_WEBHOOK_SECRET
+  let rawBody: string
+  try {
+    rawBody = await req.text()
+  } catch {
+    return NextResponse.json({ error: 'Could not read request body' }, { status: 400 })
+  }
 
+  const secret = process.env.SIGNAL_WEBHOOK_SECRET
   if (secret) {
     const signature = req.headers.get('x-monica-signature') ?? ''
     if (!verifyHmac(rawBody, signature, secret)) {
@@ -49,12 +53,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Parse sender name from "Name <email>" format
   const senderMatch = payload.sender.match(/^(.+?)\s*<(.+?)>$/)
   const senderName = payload.senderName ?? (senderMatch ? senderMatch[1].trim() : payload.sender)
   const senderEmail = senderMatch ? senderMatch[2].trim() : payload.sender
 
   try {
-    const signals = await classifySignals({
+    const classified = await classifySignals({
       senderEmail,
       senderName,
       subject: payload.subject,
@@ -63,32 +68,61 @@ export async function POST(req: NextRequest) {
       hasIcsAttachment: payload.hasIcsAttachment ?? false,
     })
 
+    if (classified.length === 0) {
+      return NextResponse.json({ success: true, signalsExtracted: 0, message: 'Email classified as noise — skipped' })
+    }
+
+    const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const now = new Date().toISOString()
+
+    // Build the full signal objects ready for IndexedDB
+    const signals = classified.map(c => ({
+      batchId,
+      source: 'email' as const,
+      senderEmail: c.senderEmail,
+      senderName: c.senderName,
+      subject: c.subject,
+      bodyExcerpt: c.bodyExcerpt,
+      confidence: c.confidence,
+      status: 'pending' as const,
+      suggestedDestination: c.suggestedDestination,
+      impact: c.impact,
+      riskLevel: c.riskLevel,
+      conflictDetail: c.conflictDetail,
+      receivedAt: payload.receivedAt ?? now,
+      createdAt: now,
+    }))
+
+    // Try Upstash queue if configured
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-    if (upstashUrl && upstashToken && signals.length > 0) {
-      const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2)}`
-      const batch = {
-        batchId,
-        signals,
-        webhookReceivedAt: new Date().toISOString(),
+    if (upstashUrl && upstashToken) {
+      try {
+        await fetch(`${upstashUrl}/lpush/signal_queue`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${upstashToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([JSON.stringify({ batchId, signals, webhookReceivedAt: now })]),
+        })
+      } catch (e) {
+        console.error('Upstash write failed:', e)
+        // Continue — return signals directly as fallback
       }
-
-      await fetch(`${upstashUrl}/lpush/signal_queue`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${upstashToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify([JSON.stringify(batch)]),
-      })
-
-      return NextResponse.json({ success: true, batchId, signalsExtracted: signals.length })
     }
 
-    return NextResponse.json({ success: true, signals, signalsExtracted: signals.length })
+    // Always return signals in response so client can store directly
+    return NextResponse.json({
+      success: true,
+      batchId,
+      signalsExtracted: signals.length,
+      signals,
+    })
+
   } catch (err) {
-    console.error('Signal ingestion error:', err)
-    return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+    console.error('Signal processing error:', err)
+    return NextResponse.json({ error: 'Processing failed', detail: String(err) }, { status: 500 })
   }
 }
