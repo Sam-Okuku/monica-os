@@ -10,7 +10,6 @@ export async function acceptSignal(
   const outcome = destination === signal.suggestedDestination ? 'accepted' : 'reassigned'
   const now = nowISO()
 
-  // Create the operational item
   let createdId: number | undefined
   let createdType: string | undefined
 
@@ -18,13 +17,33 @@ export async function acceptSignal(
     createdId = await db.tasks.add({
       title: signal.subject,
       status: 'pending',
-      priority: signal.riskLevel === 'high' ? 'urgent' : signal.riskLevel === 'medium' ? 'high' : 'normal',
+      priority:
+        signal.riskLevel === 'high'
+          ? 'urgent'
+          : signal.riskLevel === 'medium'
+          ? 'high'
+          : 'normal',
       category: 'exec',
       is_boss_priority: false,
-      source: 'email',
+      source: 'manual',          // ← fixed: 'email' is not in the Task source union
       created_at: now,
     })
     createdType = 'tasks'
+  }
+
+  if (destination === 'calendar') {
+    createdId = await db.events.add({
+      title: signal.subject,
+      event_type: 'meeting',
+      starts_at: now,
+      ends_at: now,
+      prep_needed: true,
+      brief_sent: false,
+      is_shadow: false,
+      lifecycle: 'active',
+      notes: `Signal from ${signal.senderName}: ${signal.bodyExcerpt}`,
+    })
+    createdType = 'events'
   }
 
   if (destination === 'followup') {
@@ -50,11 +69,8 @@ export async function acceptSignal(
     createdType = 'notes'
   }
 
-  if (destination === 'skip') {
-    // No item created for skip
-  }
+  // destination === 'tracker' or 'skip': no item created automatically
 
-  // Update signal
   await db.executive_signals.update(signal.id!, {
     status: 'accepted',
     acceptedAt: now,
@@ -63,7 +79,6 @@ export async function acceptSignal(
     createdWorkItemType: createdType,
   })
 
-  // Write review history
   await db.signal_review_history.add({
     signalId: signal.id!,
     originalSuggestion: signal.suggestedDestination,
@@ -74,7 +89,6 @@ export async function acceptSignal(
     reviewedAt: now,
   })
 
-  // Check if learning pattern should be suggested
   await checkLearningPattern(signal, destination)
 }
 
@@ -123,36 +137,43 @@ export async function dismissSignal(
   }
 }
 
-async function checkLearningPattern(signal: ExecutiveSignal, destination: SignalDestination) {
-  // Count how many times this sender has been routed to this destination
-  const history = await db.signal_review_history.toArray()
-  const signalsFromSender = await db.executive_signals
-    .where('senderEmail').equals(signal.senderEmail)
+async function checkLearningPattern(
+  signal: ExecutiveSignal,
+  destination: SignalDestination
+): Promise<void> {
+  const allSignals = await db.executive_signals
+    .where('senderEmail')
+    .equals(signal.senderEmail)
     .toArray()
 
-  const senderSignalIds = new Set(signalsFromSender.map(s => s.id!))
+  const senderSignalIds = new Set(allSignals.map(s => s.id!))
+
+  const history = await db.signal_review_history.toArray()
   const acceptedToSameDestination = history.filter(
-    h => senderSignalIds.has(h.signalId) && h.finalDestination === destination && h.outcome === 'accepted'
+    h =>
+      senderSignalIds.has(h.signalId) &&
+      h.finalDestination === destination &&
+      (h.outcome === 'accepted' || h.outcome === 'reassigned')
   ).length
 
   if (acceptedToSameDestination >= 4) {
-    // Check if pattern already exists
     const existing = await db.signal_learning_patterns
       .where('[patternType+patternValue]')
       .equals(['sender', signal.senderEmail])
       .first()
 
     if (!existing) {
-      // Set a flag in settings to prompt Monica
-      await db.settings.put({
-        key: `learning_suggestion_${signal.senderEmail}`,
-        value: JSON.stringify({
-          senderEmail: signal.senderEmail,
-          senderName: signal.senderName,
-          destination,
-          count: acceptedToSameDestination + 1,
+      try {
+        await db.settings.put({
+          key: `learning_suggestion_${signal.senderEmail}`,
+          value: JSON.stringify({
+            senderEmail: signal.senderEmail,
+            senderName: signal.senderName,
+            destination,
+            count: acceptedToSameDestination + 1,
+          }),
         })
-      })
+      } catch {}
     }
   }
 }
