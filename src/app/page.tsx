@@ -16,6 +16,7 @@ import {
   isPastActiveEvent,
 } from '@/lib/domain'
 import { useNow } from '@/hooks/useNow'
+import { syncSignalsFromServer, shouldSync } from '@/lib/signals/syncSignals'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
@@ -54,7 +55,27 @@ export default function Dashboard() {
   const dayMode = getDayMode()
   const now = useNow()
 
-  useEffect(() => { seedInitialData() }, [])
+  useEffect(() => {
+    seedInitialData()
+
+    // Sync signals from server on app open
+    if (shouldSync()) {
+      syncSignalsFromServer().then(count => {
+        if (count > 0) {
+          console.log(`[Monica OS] Synced ${count} new signal(s)`)
+        }
+      })
+    }
+
+    // Re-sync every 5 minutes while app is open
+    const syncInterval = setInterval(() => {
+      if (shouldSync()) {
+        syncSignalsFromServer()
+      }
+    }, 5 * 60 * 1000)
+
+    return () => clearInterval(syncInterval)
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
