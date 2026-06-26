@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { classifySignals } from '@/lib/signals/classifier'
 import { createHmac } from 'crypto'
+import { enqueueSignalBatch } from '@/lib/signals/serverQueue'
 
 export const runtime = 'nodejs'
 
@@ -53,7 +54,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Parse sender name from "Name <email>" format
   const senderMatch = payload.sender.match(/^(.+?)\s*<(.+?)>$/)
   const senderName = payload.senderName ?? (senderMatch ? senderMatch[1].trim() : payload.sender)
   const senderEmail = senderMatch ? senderMatch[2].trim() : payload.sender
@@ -69,22 +69,25 @@ export async function POST(req: NextRequest) {
     })
 
     if (classified.length === 0) {
-      return NextResponse.json({ success: true, signalsExtracted: 0, message: 'Email classified as noise — skipped' })
+      return NextResponse.json({
+        success: true,
+        signalsExtracted: 0,
+        message: 'Email classified as noise — skipped',
+      })
     }
 
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const now = new Date().toISOString()
 
-    // Build the full signal objects ready for IndexedDB
     const signals = classified.map(c => ({
       batchId,
-      source: 'email' as const,
+      source: 'email',
       senderEmail: c.senderEmail,
       senderName: c.senderName,
       subject: c.subject,
       bodyExcerpt: c.bodyExcerpt,
       confidence: c.confidence,
-      status: 'pending' as const,
+      status: 'pending',
       suggestedDestination: c.suggestedDestination,
       impact: c.impact,
       riskLevel: c.riskLevel,
@@ -93,10 +96,12 @@ export async function POST(req: NextRequest) {
       createdAt: now,
     }))
 
-    // Try Upstash queue if configured
+    // Store in server queue for browser to pull
+    enqueueSignalBatch({ batchId, signals, webhookReceivedAt: now })
+
+    // Also try Upstash if configured
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
-
     if (upstashUrl && upstashToken) {
       try {
         await fetch(`${upstashUrl}/lpush/signal_queue`, {
@@ -107,13 +112,9 @@ export async function POST(req: NextRequest) {
           },
           body: JSON.stringify([JSON.stringify({ batchId, signals, webhookReceivedAt: now })]),
         })
-      } catch (e) {
-        console.error('Upstash write failed:', e)
-        // Continue — return signals directly as fallback
-      }
+      } catch {}
     }
 
-    // Always return signals in response so client can store directly
     return NextResponse.json({
       success: true,
       batchId,
@@ -123,6 +124,9 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Signal processing error:', err)
-    return NextResponse.json({ error: 'Processing failed', detail: String(err) }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Processing failed', detail: String(err) },
+      { status: 500 }
+    )
   }
 }
